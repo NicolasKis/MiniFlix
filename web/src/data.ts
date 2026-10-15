@@ -26,7 +26,9 @@ export type Progress = {
 }
 export type Ep = { key: string; season: number; number: number; min: number; airs: string | null; aired: boolean }
 
-export const titles = raw.titles as Title[]
+// The built-in locked list, replaced by the server's copy (with approved variances) once it loads.
+export let titles = raw.titles as Title[]
+export const setTitles = (list: Title[]) => { titles = list }
 
 // Eras start at these titles; order comes from the locked list.
 export const ERAS: { start: string; name: string; years: string }[] = [

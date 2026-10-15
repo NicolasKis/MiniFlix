@@ -1,9 +1,8 @@
-﻿import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import { ANIM_GROUPS, type AnimKey, type AnimPrefs } from './anim'
 import { QUALITY_STYLE, fmtDate, titles, today } from './data'
 import { runTask, type Tva as TvaData } from './store'
 
-const tmdbIds = new Map(titles.map(t => [t.tmdb?.split('/')[1], t]))
 
 type Props = {
   tva: TvaData
@@ -11,20 +10,47 @@ type Props = {
   entering: boolean
 }
 
+// The server checks on the 1st and 15th of each month.
+const nextCheck = () => {
+  const d = new Date()
+  const next = d.getDate() < 15 ? new Date(d.getFullYear(), d.getMonth(), 15) : new Date(d.getFullYear(), d.getMonth() + 1, 1)
+  return next.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+const VARIANCE = {
+  episodes: { label: 'New episodes', icon: 'EP', tile: 'bg-red text-white text-[17px]' },
+  streaming: { label: 'Streaming change', icon: 'D+', tile: 'bg-[#4FC3F7] text-[#06213A] text-[17px]' },
+  date: { label: 'Release date change', icon: 'DATE', tile: 'bg-gold text-bg text-[13px]' },
+  title: { label: 'New title announced', icon: 'NEW', tile: 'bg-[#A58BF0] text-[#1E1438] text-[13px]' },
+} as const
+
 const stamp = (on: boolean, delay: number): CSSProperties | undefined =>
   on ? { animation: `st-stamp 440ms cubic-bezier(.2,.8,.2,1) ${delay}ms both` } : undefined
 
 export default function Tva({ tva, anim, entering }: Props) {
-  const [busy, setBusy] = useState<'jellyfin' | 'backup' | null>(null)
-  const [message, setMessage] = useState<{ task: 'jellyfin' | 'backup'; text: string } | null>(null)
+  const [busy, setBusy] = useState<'jellyfin' | 'backup' | 'variance' | null>(null)
+  const [message, setMessage] = useState<{ task: 'jellyfin' | 'backup' | 'variance'; text: string } | null>(null)
+  const [leaving, setLeaving] = useState<string[]>([])
   const [listOpen, setListOpen] = useState(false)
   const [animOpen, setAnimOpen] = useState(false)
   const [confirm, setConfirm] = useState(false)
   const [fresh, setFresh] = useState<string[]>([])
+  const tmdbIds = new Map(titles.map(t => [t.tmdb?.split('/')[1], t]))
   const door = entering && anim.on('tva')
   const tasks = anim.on('tasks')
 
-  const run = async (task: 'jellyfin' | 'backup') => {
+  // Approved or dismissed cards fold away first, then the server applies it.
+  const resolve = async (keys: string[], approve: boolean) => {
+    setLeaving(keys)
+    if (tasks) await new Promise(r => setTimeout(r, 320))
+    for (const key of keys) {
+      const error = await runTask('variance/resolve', { key, approve })
+      if (error) setMessage({ task: 'variance', text: error })
+    }
+    setLeaving([])
+  }
+
+  const run = async (task: 'jellyfin' | 'backup' | 'variance') => {
     const before = new Set((tva.jellyfin?.items ?? []).map(i => i.tmdb))
     setBusy(task)
     setMessage(null)
@@ -51,6 +77,54 @@ export default function Tva({ tva, anim, entering }: Props) {
         <span className="pb-2 text-[19px] text-muted">Keeps your timeline safe.</span>
       </div>
 
+      <section aria-labelledby="st-var" className="flex flex-col gap-4" style={stamp(door, 250)}>
+        <Heading id="st-var" tile="bg-gold" icon={<><path d="M4 14h16" stroke="#0E0F12" strokeWidth="2.2" strokeLinecap="round" /><path d="M9 14c2 0 2-6 5-6h3" fill="none" stroke="#0E0F12" strokeWidth="2.2" strokeLinecap="round" /><circle cx="18" cy="8" r="1.8" fill="#0E0F12" /></>}>
+          Variance report
+        </Heading>
+        <p className="m-0 max-w-[62ch]">Every two weeks the TVA checks TMDB for new episodes, changed release dates, streaming changes and newly announced titles. Nothing changes on your timeline until you approve it.</p>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <TaskButton busy={busy === 'variance'} sand={tasks} disabled={!!busy} onClick={() => run('variance')} className="border-gold bg-transparent text-gold">
+            {busy === 'variance' ? 'Checking TMDB…' : 'Check now'}
+          </TaskButton>
+          <span role="status" className="text-muted">
+            {busy === 'variance' ? 'Looking for new episodes, dates and titles…'
+              : message?.task === 'variance' ? <span className="text-[#F07B7B]">{message.text}</span>
+              : `${tva.varChecked ? `Last checked ${fmtDate(tva.varChecked.slice(0, 10))}. ` : ''}${tva.variances.length ? `${tva.variances.length} ${tva.variances.length === 1 ? 'change waits' : 'changes wait'} for you.` : 'Your timeline is up to date.'} Next automatic check: ${nextCheck()}.`}
+          </span>
+        </div>
+        {tva.variances.length > 0 && (
+          <div className="flex flex-col gap-2.5">
+            {tva.variances.map((v, i) => (
+              <div
+                key={v.key}
+                className="flex flex-wrap items-center gap-x-4 gap-y-3.5 rounded-xl bg-surface px-4 py-3.5"
+                style={leaving.includes(v.key) && tasks ? { animation: `st-fold 320ms ease-in ${i * 40}ms both` } : undefined}
+              >
+                <div className={`flex size-12 shrink-0 items-center justify-center rounded-xl font-display font-extrabold tracking-[0.02em] ${VARIANCE[v.kind].tile}`}>{VARIANCE[v.kind].icon}</div>
+                <div className="flex min-w-0 flex-[1_1_240px] flex-col gap-0.5">
+                  <span className="text-sm font-bold text-muted">{VARIANCE[v.kind].label}</span>
+                  <span className="text-lg font-bold leading-tight">{v.title}</span>
+                  <span className="text-[#D9D5CD]">{v.detail}</span>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <button type="button" onClick={() => resolve([v.key], false)} aria-label={`Dismiss: ${v.title}`} className="h-11 rounded-full border-2 border-line bg-transparent px-4 text-[15px] font-bold text-ink">Dismiss</button>
+                  <button type="button" onClick={() => resolve([v.key], true)} aria-label={`Approve: ${v.title}`} className="h-11 rounded-full border-2 border-gold bg-gold px-[18px] text-[15px] font-extrabold text-bg">Approve</button>
+                </div>
+              </div>
+            ))}
+            {tva.variances.length > 1 && (
+              <button
+                type="button"
+                onClick={() => resolve(tva.variances.map(v => v.key), true)}
+                className="self-start border-0 bg-transparent py-2.5 text-base font-bold text-gold underline underline-offset-4"
+              >
+                Approve all {tva.variances.length}
+              </button>
+            )}
+          </div>
+        )}
+      </section>
+
       <section aria-labelledby="st-jf" className="flex flex-col gap-4" style={stamp(door, 290)}>
         <Heading id="st-jf" tile="bg-[#A58BF0]" icon={<path d="M12 5.2 L18.6 17.4 Q19 18.2 18.1 18.2 H5.9 Q5 18.2 5.4 17.4 Z M12 11 L9.4 15.6 H14.6 Z" fill="#1E1438" fillRule="evenodd" />}>
           Jellyfin library
@@ -58,10 +132,10 @@ export default function Tva({ tva, anim, entering }: Props) {
         <p className="m-0 max-w-[60ch]">Looks through your Jellyfin server for films and shows on the timeline, so they get the Jellyfin icon and their quality.</p>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
           <TaskButton busy={busy === 'jellyfin'} sand={tasks} disabled={!!busy} onClick={() => run('jellyfin')} className="border-[#A58BF0] bg-[#A58BF0] text-[#1E1438]">
-            {busy === 'jellyfin' ? 'Checkingâ€¦' : 'Check library now'}
+            {busy === 'jellyfin' ? 'Checking…' : 'Check library now'}
           </TaskButton>
           <span role="status" className="text-muted">
-            {busy === 'jellyfin' ? 'Looking through your movies and showsâ€¦'
+            {busy === 'jellyfin' ? 'Looking through your movies and shows…'
               : message?.task === 'jellyfin' ? <span className="text-[#F07B7B]">{message.text}</span>
               : checked ? `Last checked ${checked}. Found ${onTimeline.length} timeline ${onTimeline.length === 1 ? 'title' : 'titles'}.`
               : 'Not checked yet.'}
@@ -108,10 +182,10 @@ export default function Tva({ tva, anim, entering }: Props) {
         </p>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
           <TaskButton busy={busy === 'backup'} sand={tasks} disabled={!!busy} onClick={() => setConfirm(true)} className="border-ink bg-ink text-bg">
-            {busy === 'backup' ? 'Backing upâ€¦' : 'Back up now'}
+            {busy === 'backup' ? 'Backing up…' : 'Back up now'}
           </TaskButton>
           <span role="status" className="flex items-center gap-2 text-muted">
-            {busy === 'backup' ? 'Saving to GitHubâ€¦'
+            {busy === 'backup' ? 'Saving to GitHub…'
               : message?.task === 'backup' ? <span className="text-[#F07B7B]">{message.text}</span>
               : backedUp ? (
                 <>
@@ -159,7 +233,7 @@ export default function Tva({ tva, anim, entering }: Props) {
 
       <section aria-labelledby="st-about" className="flex flex-col gap-2 text-[15px] text-muted" style={stamp(door, 500)}>
         <h2 id="st-about" className="m-0 mb-1 text-[17px] font-bold text-ink">About</h2>
-        <span>Sacred Timeline Â· {titles.length} titles</span>
+        <span>Sacred Timeline · {titles.length} titles</span>
         <span>Running on jellyfin-server, reached through Tailscale.</span>
       </section>
 

@@ -1,4 +1,4 @@
-﻿import { Fragment, useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
+import { Fragment, useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { useAnim } from './anim'
 import {
   ERAS, counts, daysUntil, duration, episodes, fmtDate, isDone, isExtra, poster, released, span, titles, today,
@@ -7,7 +7,7 @@ import {
 import Details from './Details'
 import History from './History'
 import { Check, Chevron, Logo, Service } from './icons'
-import { useProgress, useTva, type JellyfinItem } from './store'
+import { useProgress, useTva, type JellyfinItem, type Net } from './store'
 import Tva from './Tva'
 
 const KIND = { movie: 'Film', series: 'Series', special: 'Special' } as const
@@ -16,14 +16,15 @@ const eraAt = new Map(ERAS.map(e => [e.start, e]))
 const STOP_LABEL = ['Origins', 'Infinity', 'Multiverse', 'Doomsday']
 const EASE = 'cubic-bezier(.2,.8,.2,1)'
 
-// Which saga each title belongs to, by position in the locked list.
-const eraOf = new Map<string, number>()
-{
+// Which saga each title belongs to, by position in the list (titles added later join the last saga).
+const sagaMap = () => {
+  const map = new Map<string, number>()
   let i = -1
   for (const t of titles) {
     if (eraAt.has(t.id)) i = ERAS.findIndex(e => e.start === t.id)
-    eraOf.set(t.id, i)
+    map.set(t.id, i)
   }
+  return map
 }
 
 type Screen = 'timeline' | 'history' | 'tva'
@@ -32,7 +33,7 @@ type Toast = { id: number; label: string; before: Progress }
 type Fx = { id: string; kind: 'tick' | 'untick' | 'season' | 'branch-out'; season?: number; n: number }
 
 export default function App() {
-  const { p, save, offline } = useProgress()
+  const { p, save, net } = useProgress()
   const tva = useTva()
   const anim = useAnim()
   const [open, setOpen] = useState<Record<string, boolean>>({})
@@ -78,7 +79,7 @@ export default function App() {
   if (!p) {
     return (
       <main className="min-h-dvh grid place-items-center p-6 text-center text-muted">
-        {offline ? "Can't reach the Sacred Timeline server. Check that Tailscale is on, then reload." : 'Loadingâ€¦'}
+        {net.offline ? "Can't reach the Sacred Timeline server. Check that Tailscale is on, then reload." : 'Loading…'}
       </main>
     )
   }
@@ -117,6 +118,7 @@ export default function App() {
     setToast(null)
   }
 
+  const eraOf = sagaMap()
   const { counted, total, watched } = totals(p)
   const finished = total > 0 && watched >= total
   const next = counted.find(t => !isDone(t, p))
@@ -220,15 +222,10 @@ export default function App() {
 
   return (
     <div className="min-h-dvh">
-      {offline && (
-        <div role="status" className="bg-btn px-5 pb-3 text-center text-[15px] font-semibold text-white" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 12px)' }}>
-          Can't reach the server. Your last change may not be saved.
-        </div>
-      )}
       {/* The safe-area insets keep content clear of the iPhone camera cutout and home bar. */}
       <div
         className="mx-auto flex max-w-[1120px] flex-col gap-10 px-5"
-        style={{ paddingTop: offline ? 20 : 'calc(env(safe-area-inset-top) + 20px)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}
+        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 20px)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}
       >
         <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
           <div className="flex items-center gap-3">
@@ -237,6 +234,7 @@ export default function App() {
               Sacred<br />Timeline
             </h1>
           </div>
+          <SyncPill net={net} />
           <div className="flex items-center gap-2">
             <nav aria-label="Screens" className="flex gap-1 rounded-full bg-surface p-1">
               {(['timeline', 'history'] as const).map(s => (
@@ -268,6 +266,11 @@ export default function App() {
                 )}
               </svg>
               TVA
+              {tva.variances.length > 0 && (
+                <span aria-label={`${tva.variances.length} changes to review`} className="-mr-1 grid h-[22px] min-w-[22px] place-items-center rounded-full bg-red px-1.5 text-[13px] font-extrabold tracking-normal text-white">
+                  {tva.variances.length}
+                </span>
+              )}
             </button>
           </div>
         </header>
@@ -278,6 +281,12 @@ export default function App() {
           <History p={p} onOpen={openDetail} onRewatch={rewatch} entering={entering?.screen === 'history' && anim.on('history')} />
         ) : (
         <>
+        {tva.variances.length > 0 && (
+          <div role="status" className="hidden items-center justify-between gap-4 rounded-xl border-2 border-gold bg-[#2A2312] px-5 py-3 md:flex">
+            <span className="font-semibold">The TVA found {tva.variances.length} {tva.variances.length === 1 ? 'change' : 'changes'} to your timeline.</span>
+            <button type="button" onClick={() => go('tva')} className="h-10 shrink-0 rounded-full border-0 bg-gold px-5 text-base font-extrabold text-bg">Review</button>
+          </div>
+        )}
         <section aria-label="Progress" className="flex flex-col gap-3.5" style={up(0)}>
           <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
             <span className="font-display text-[clamp(104px,16vw,200px)] font-extrabold leading-[0.8] tracking-[-0.03em]">{shownPct}%</span>
@@ -317,7 +326,7 @@ export default function App() {
                   </h2>
                   <div className="flex flex-wrap items-center gap-2.5">
                     <span className="text-muted">
-                      {nextEp ? `Season ${nextEp.season} Â· Episode ${nextEp.number} Â· ${duration(nextEp.min)}` : `${KIND[next.kind]} Â· ${duration(totalMins(next))}`}
+                      {nextEp ? `Season ${nextEp.season} · Episode ${nextEp.number} · ${duration(nextEp.min)}` : `${KIND[next.kind]} · ${duration(totalMins(next))}`}
                     </span>
                     <Services t={next} jf={onJellyfin(next)} />
                   </div>
@@ -518,8 +527,8 @@ export default function App() {
                         {!mini && (
                           <>
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-[15px] text-muted">{meta.filter(Boolean).join(' Â· ')}</span>
-                              {watchCount(t, p) > 1 && <span className="text-[15px] font-bold text-gold">Watched {watchCount(t, p)}Ă—</span>}
+                              <span className="text-[15px] text-muted">{meta.filter(Boolean).join(' · ')}</span>
+                              {watchCount(t, p) > 1 && <span className="text-[15px] font-bold text-gold">Watched {watchCount(t, p)}×</span>}
                               {out && <Services t={t} jf={onJellyfin(t)} />}
                             </div>
                             {t.note && <span className="text-[15px] text-muted">{t.note}</span>}
@@ -752,6 +761,20 @@ function Services({ t, jf }: { t: Title; jf?: JellyfinItem }) {
       {list.map(w => <Service key={w} name={w} />)}
       {jf && <Service name="Jellyfin" />}
       {jf?.quality && <span className={`whitespace-nowrap rounded-md px-2 py-0.5 text-[13px] font-bold ${QUALITY_STYLE[jf.quality]}`}>{jf.quality}</span>}
+    </span>
+  )
+}
+
+// Offline, ticks stay on this device; the pill says so and confirms once they reach the server.
+function SyncPill({ net }: { net: Net }) {
+  if (!net.offline && !net.sync) return null
+  const [dot, text] = net.offline
+    ? ['bg-red', net.pending ? `Offline · ${net.pending} ${net.pending === 1 ? 'change' : 'changes'} saved on this device` : 'Offline']
+    : net.sync === 'syncing' ? ['bg-gold', 'Back online · syncing…'] : ['bg-[#5BD08A]', 'All synced']
+  return (
+    <span role="status" className="order-last flex w-full items-center gap-2 text-[15px] font-semibold text-muted sm:order-none sm:w-auto sm:rounded-full sm:bg-surface sm:px-3.5 sm:py-1.5">
+      <span className={`size-2.5 shrink-0 rounded-full ${dot}`} />
+      {text}
     </span>
   )
 }

@@ -1,11 +1,10 @@
-﻿import { useState, type CSSProperties, type MouseEvent } from 'react'
+import { useState, type CSSProperties, type MouseEvent } from 'react'
 import { countLabel, fmtDate, poster, released, titles, watchCount, watchedOn, type Progress, type Title } from './data'
 
 type Props = { p: Progress; onOpen: (t: Title, e?: MouseEvent<HTMLElement>) => void; onRewatch: (t: Title) => void; entering: boolean }
 
 const EASE = 'cubic-bezier(.2,.8,.2,1)'
 
-const byId = new Map(titles.map(t => [t.id, t]))
 
 // Every watch, newest first: marathon ticks and rewatches together.
 export default function History({ p, onOpen, onRewatch, entering }: Props) {
@@ -14,6 +13,7 @@ export default function History({ p, onOpen, onRewatch, entering }: Props) {
   const stamp = (delay: number): CSSProperties | undefined => (entering ? { animation: `st-stamp 440ms ${EASE} ${delay}ms both` } : undefined)
   const [query, setQuery] = useState('')
   const q = query.trim().toLowerCase()
+  const byId = new Map(titles.map(t => [t.id, t]))
 
   const watches = [
     ...titles.flatMap(t => {
@@ -94,7 +94,7 @@ export default function History({ p, onOpen, onRewatch, entering }: Props) {
                   >
                     <img src={poster(t, 'w154')} alt="" width={56} height={84} className="h-[84px] w-14 shrink-0 rounded-[3px] bg-track object-cover" />
                     <span className="flex min-w-0 flex-col gap-0.5">
-                      <span className="font-display text-[40px] font-extrabold leading-[0.9] text-gold">{watchCount(t, p)}Ă—</span>
+                      <span className="font-display text-[40px] font-extrabold leading-[0.9] text-gold">{watchCount(t, p)}×</span>
                       <span className="text-base font-semibold leading-tight">{t.title}</span>
                     </span>
                   </button>

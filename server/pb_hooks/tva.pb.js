@@ -46,6 +46,30 @@ routerAdd("POST", "/api/st/jellyfin", (e) => {
   }
 })
 
+// Variance report: on demand, and by itself on the 1st and 15th of each month (every two weeks).
+routerAdd("POST", "/api/st/variance", (e) => {
+  try {
+    return e.json(200, { found: require(`${__hooks}/variance.js`).check(e.app) })
+  } catch (err) {
+    return e.json(502, { error: "Couldn't check TMDB: " + err })
+  }
+})
+
+routerAdd("POST", "/api/st/variance/resolve", (e) => {
+  const body = e.requestInfo().body
+  if (!body || typeof body.key !== "string") return e.json(400, { error: "Missing variance key." })
+  const ok = require(`${__hooks}/variance.js`).resolve(e.app, body.key, body.approve === true)
+  return ok ? e.json(200, { ok: true }) : e.json(404, { error: "That change was already handled." })
+})
+
+cronAdd("variance-check", "0 5 1,15 * *", () => {
+  try {
+    require(`${__hooks}/variance.js`).check($app)
+  } catch (err) {
+    console.log("variance check failed:", err)
+  }
+})
+
 // Saves progress, rewatch history and the Jellyfin title list to the private backup repo on GitHub.
 routerAdd("POST", "/api/st/backup", (e) => {
   const token = $os.getenv("GITHUB_TOKEN")
@@ -79,7 +103,8 @@ routerAdd("POST", "/api/st/backup", (e) => {
     const tva = e.app.findRecordById("tva", "tvastate0000001")
     const jellyfin = JSON.parse(tva.getString("jellyfin") || "null")
     const savedAt = new Date().toISOString()
-    const file = JSON.stringify({ savedAt: savedAt, progress: progress, jellyfinLibrary: jellyfin }, null, 2)
+    const catalog = JSON.parse(tva.getString("catalog") || "null")
+    const file = JSON.stringify({ savedAt: savedAt, progress: progress, jellyfinLibrary: jellyfin, timeline: catalog }, null, 2)
 
     const url = "https://api.github.com/repos/" + repo + "/contents/backup.json"
     const headers = { "Authorization": "Bearer " + token, "Accept": "application/vnd.github+json", "User-Agent": "sacred-timeline" }

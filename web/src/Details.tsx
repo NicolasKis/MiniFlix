@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { countLabel, duration, fmtDate, isDone, poster, released, totalMins, watchCount, type Progress, type Title } from './data'
 
 const KIND = { movie: 'Film', series: 'Series', special: 'Special' } as const
@@ -43,8 +43,8 @@ export default function Details({ t, p, services, from, onClose, onToggle, onRew
   const fade = from ? { animation: closing ? 'st-fade 220ms ease-in reverse both' : 'st-fade 200ms ease-out both' } : undefined
 
   const meta = out
-    ? [KIND[t.kind], duration(totalMins(t)), EXTRA[t.category] || null].filter(Boolean).join(' Â· ')
-    : [KIND[t.kind], t.release ? `Out ${fmtDate(t.release)}` : 'Date to be announced'].join(' Â· ')
+    ? [KIND[t.kind], duration(totalMins(t)), EXTRA[t.category] || null].filter(Boolean).join(' · ')
+    : [KIND[t.kind], t.release ? `Out ${fmtDate(t.release)}` : 'Date to be announced'].join(' · ')
 
   return (
     <div
@@ -91,7 +91,7 @@ export default function Details({ t, p, services, from, onClose, onToggle, onRew
                 aria-pressed={done}
                 className={`h-12 rounded-full border-2 px-[22px] text-[17px] font-bold ${done ? 'border-line bg-transparent text-ink' : 'border-btn bg-btn text-white'}`}
               >
-                {done ? 'Watched in marathon âś“' : 'Mark watched'}
+                {done ? 'Watched in marathon ✓' : 'Mark watched'}
               </button>
               <button type="button" onClick={onRewatch} className="h-12 rounded-full border-2 border-gold bg-transparent px-[22px] text-[17px] font-bold text-gold">
                 + Add rewatch
