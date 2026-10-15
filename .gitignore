@@ -1,4 +1,5 @@
 .env
+server/.env
 node_modules
 web/dist
 server/pb_data

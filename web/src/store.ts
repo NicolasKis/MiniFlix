@@ -1,4 +1,4 @@
-import PocketBase from 'pocketbase'
+﻿import PocketBase, { type RecordModel } from 'pocketbase'
 import { useEffect, useState } from 'react'
 import type { Progress } from './data'
 
@@ -34,3 +34,26 @@ export function useProgress() {
 
   return { p, save, offline }
 }
+
+export type JellyfinItem = { name: string; year: number | null; type: 'movie' | 'tv'; tmdb: string | null; quality: string | null }
+export type Tva = { jellyfin: { checkedAt: string; items: JellyfinItem[] } | null; lastBackup: string }
+
+// The TVA record: last Jellyfin check and last backup, written only by the server.
+export function useTva() {
+  const [tva, setTva] = useState<Tva>({ jellyfin: null, lastBackup: '' })
+  useEffect(() => {
+    const tvaRecords = pb.collection('tva')
+    const read = (r: RecordModel) => setTva({ jellyfin: (r.jellyfin as Tva['jellyfin']) ?? null, lastBackup: (r.lastBackup as string) ?? '' })
+    let unsubscribe: (() => void) | undefined
+    tvaRecords.getOne('tvastate0000001').then(read).catch(() => {})
+    tvaRecords.subscribe('tvastate0000001', e => read(e.record)).then(u => { unsubscribe = u }).catch(() => {})
+    return () => unsubscribe?.()
+  }, [])
+  return tva
+}
+
+// Runs a TVA task on the server; resolves with an error message, or null when it worked.
+export const runTask = (task: 'jellyfin' | 'backup') =>
+  pb.send(`/api/st/${task}`, { method: 'POST' })
+    .then(() => null)
+    .catch((err: { response?: { error?: string } }) => err.response?.error ?? "Couldn't reach the server.")

@@ -44,6 +44,45 @@ button {
   to { transform: scaleX(0); }
 }
 
+/* Animations. Each one is switched on per device on the TVA screen; reduce-motion is ignored on purpose. */
+@keyframes st-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes st-from-right { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: none; } }
+@keyframes st-draw-down { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes st-drain { from { transform: scaleY(1); } to { transform: scaleY(0); } }
+@keyframes st-stamp { 0% { opacity: 0; transform: scale(1.14); } 60% { opacity: 1; transform: scale(.98); } 100% { opacity: 1; transform: none; } }
+@keyframes st-stamp-tilt { 0% { opacity: 0; transform: rotate(-4deg) scale(1.8); } 60% { opacity: 1; transform: rotate(-4deg) scale(.94); } 100% { opacity: 1; transform: rotate(-4deg) scale(1); } }
+@keyframes st-pop { 0% { transform: scale(.7); } 55% { transform: scale(1.18); } 100% { transform: scale(1); } }
+@keyframes st-ring { from { box-shadow: 0 0 0 0 rgba(226, 54, 54, .75); } to { box-shadow: 0 0 0 14px rgba(226, 54, 54, 0); } }
+@keyframes st-flash { 0%, 35% { color: #F5A524; text-shadow: 0 0 22px rgba(245, 165, 36, .85); } 100% { color: #F2EFEA; text-shadow: none; } }
+@keyframes st-swap { from { opacity: 0; transform: translateX(48px); } to { opacity: 1; transform: none; } }
+@keyframes st-ripple { 0% { transform: scale(.6); box-shadow: 0 0 0 0 rgba(245, 165, 36, .8); } 60% { transform: scale(1.12); } 100% { transform: none; box-shadow: 0 0 0 8px rgba(245, 165, 36, 0); } }
+@keyframes st-branch-draw { from { stroke-dashoffset: 40; } to { stroke-dashoffset: 0; } }
+@keyframes st-sparks { 0% { box-shadow: 0 0 0 0 rgba(245, 165, 36, .95); background: #F5A524; } 100% { box-shadow: 0 0 24px 8px rgba(245, 165, 36, 0); } }
+@keyframes st-sweep { 0% { transform: scaleX(0); opacity: 1; } 45% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
+@keyframes st-glow-text { 0%, 50% { text-shadow: 0 0 26px rgba(245, 165, 36, .9); color: #F5A524; } 100% { text-shadow: none; color: #F2EFEA; } }
+@keyframes st-sand { 0% { transform: translateY(-4px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(4px); opacity: 0; } }
+@keyframes st-glow { 0% { background: rgba(245, 165, 36, .28); } 100% { background: rgba(245, 165, 36, 0); } }
+@keyframes st-check-draw { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
+@keyframes st-zoom { from { opacity: .3; transform: translate(var(--dx), var(--dy)) scale(.12); } to { opacity: 1; transform: none; } }
+@keyframes st-unzoom { from { opacity: 1; transform: none; } to { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.12); } }
+@keyframes st-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes st-door-open { 0%, 35% { clip-path: inset(50% 0 50% 0); } 100% { clip-path: inset(0 0 0 0); } }
+@keyframes st-door-line { 0% { transform: scaleX(0); opacity: 1; } 30% { transform: scaleX(1); opacity: 1; box-shadow: 0 0 34px 6px rgba(245, 165, 36, .95); } 100% { transform: scaleX(1); opacity: 0; } }
+
+.st-door-line {
+  position: absolute;
+  left: -20px;
+  right: -20px;
+  top: 50%;
+  height: 4px;
+  margin-top: -2px;
+  background: var(--color-gold);
+  box-shadow: 0 0 18px rgba(245, 165, 36, .7);
+  pointer-events: none;
+  z-index: 2;
+  animation: st-door-line 460ms ease-out both;
+}
+
 :focus-visible {
   outline: 3px solid var(--color-gold);
   outline-offset: 2px;

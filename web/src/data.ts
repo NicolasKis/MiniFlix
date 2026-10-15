@@ -14,6 +14,7 @@ export type Title = {
   note?: string
   poster?: string | null
   overview?: string
+  tmdb?: string // "movie/1726" or "tv/84958"
 }
 export type Progress = {
   watched: Record<string, string>
@@ -78,7 +79,15 @@ export const countLabel = (n: number) => (n === 0 ? 'Not watched yet' : n === 1 
 export const isExtra = (t: Title) => t.category !== 'main'
 export const counts = (t: Title, p: Progress) => released(t) && (!isExtra(t) || !!p.included[t.id])
 
-export const poster = (t: Title, size: 'w154' | 'w342') => (t.poster ? `https://image.tmdb.org/t/p/${size}${t.poster}` : '')
+// Everything that counts toward 100%: main titles plus extras you added, released only.
+export const totals = (p: Progress) => {
+  const counted = titles.filter(t => counts(t, p))
+  const total = counted.reduce((a, t) => a + totalMins(t), 0)
+  const watched = counted.reduce((a, t) => a + watchedMins(t, p), 0)
+  return { counted, total, watched, pct: total ? Math.floor((watched / total) * 1000) / 10 : 0 }
+}
+
+export const poster =(t: Title, size: 'w154' | 'w342') => (t.poster ? `https://image.tmdb.org/t/p/${size}${t.poster}` : '')
 
 export const duration = (m: number) => {
   const h = Math.floor(m / 60)
@@ -106,3 +115,13 @@ export const span = (from: string, to: string) => {
 
 // The year shown in the left column, taken from "1943–1945", "Christmas 2024", "Outside time"...
 export const yearOf = (t: Title) => t.setIn.match(/\d{4}/)?.[0] ?? (t.setIn === 'Outside time' ? 'TVA' : '')
+
+// Better copies stand out more: grey for 480p up to filled gold for 4K.
+export const QUALITY_STYLE: Record<string, string> = {
+  '480p': 'bg-[#2A2B30] text-[#8A8D96]',
+  '720p': 'bg-track text-[#D9D5CD]',
+  '1080p': 'bg-[#2A2340] text-[#C9B8FF]',
+  '1440p': 'bg-[#12303A] text-[#7FD6F2]',
+  '4K': 'bg-gold text-bg',
+}
+

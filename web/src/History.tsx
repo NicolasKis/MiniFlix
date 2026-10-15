@@ -1,12 +1,17 @@
-import { useState } from 'react'
+﻿import { useState, type CSSProperties, type MouseEvent } from 'react'
 import { countLabel, fmtDate, poster, released, titles, watchCount, watchedOn, type Progress, type Title } from './data'
 
-type Props = { p: Progress; onOpen: (t: Title) => void; onRewatch: (t: Title) => void }
+type Props = { p: Progress; onOpen: (t: Title, e?: MouseEvent<HTMLElement>) => void; onRewatch: (t: Title) => void; entering: boolean }
+
+const EASE = 'cubic-bezier(.2,.8,.2,1)'
 
 const byId = new Map(titles.map(t => [t.id, t]))
 
 // Every watch, newest first: marathon ticks and rewatches together.
-export default function History({ p, onOpen, onRewatch }: Props) {
+export default function History({ p, onOpen, onRewatch, entering }: Props) {
+  // Entrance: a quick rewind from the side, with the top three stamped in.
+  const fromRight = (delay: number): CSSProperties | undefined => (entering ? { animation: `st-from-right 380ms ${EASE} ${delay}ms both` } : undefined)
+  const stamp = (delay: number): CSSProperties | undefined => (entering ? { animation: `st-stamp 440ms ${EASE} ${delay}ms both` } : undefined)
   const [query, setQuery] = useState('')
   const q = query.trim().toLowerCase()
 
@@ -28,7 +33,7 @@ export default function History({ p, onOpen, onRewatch }: Props) {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-wrap items-end justify-between gap-x-5 gap-y-2">
-        <h1 className="m-0 font-display text-[clamp(64px,9vw,112px)] font-extrabold uppercase leading-[0.85]">History</h1>
+        <h1 className="m-0 font-display text-[clamp(64px,9vw,112px)] font-extrabold uppercase leading-[0.85]" style={fromRight(0)}>History</h1>
         <span className="pb-1.5 text-muted">
           {watches.length} {watches.length === 1 ? 'watch' : 'watches'} of {seen.length} {seen.length === 1 ? 'title' : 'titles'}
         </span>
@@ -79,16 +84,17 @@ export default function History({ p, onOpen, onRewatch }: Props) {
             <section aria-labelledby="st-top" className="flex flex-col gap-4">
               <h2 id="st-top" className="m-0 font-display text-4xl font-extrabold uppercase leading-none">Most watched</h2>
               <div className="flex flex-wrap gap-4">
-                {top.map(t => (
+                {top.map((t, i) => (
                   <button
                     key={t.id}
                     type="button"
-                    onClick={() => onOpen(t)}
+                    onClick={e => onOpen(t, e)}
                     className="flex min-w-[150px] flex-[0_1_220px] items-center gap-3.5 rounded-xl border-0 bg-surface p-3 text-left text-ink"
+                    style={stamp(100 + i * 80)}
                   >
                     <img src={poster(t, 'w154')} alt="" width={56} height={84} className="h-[84px] w-14 shrink-0 rounded-[3px] bg-track object-cover" />
                     <span className="flex min-w-0 flex-col gap-0.5">
-                      <span className="font-display text-[40px] font-extrabold leading-[0.9] text-gold">{watchCount(t, p)}×</span>
+                      <span className="font-display text-[40px] font-extrabold leading-[0.9] text-gold">{watchCount(t, p)}Ă—</span>
                       <span className="text-base font-semibold leading-tight">{t.title}</span>
                     </span>
                   </button>
@@ -101,10 +107,10 @@ export default function History({ p, onOpen, onRewatch }: Props) {
             <h2 id="st-recent" className="m-0 mb-3 font-display text-4xl font-extrabold uppercase leading-none">Recent watches</h2>
             {watches.length === 0 && <span className="text-muted">Nothing yet. Tick a title on the timeline or log a rewatch above.</span>}
             {watches.slice(0, 30).map((w, i) => (
-              <div key={`${w.t.id}-${w.date}-${i}`} className="grid grid-cols-[88px_40px_minmax(0,1fr)_auto] items-center gap-x-3.5 py-2">
+              <div key={`${w.t.id}-${w.date}-${i}`} className="grid grid-cols-[88px_40px_minmax(0,1fr)_auto] items-center gap-x-3.5 py-2" style={i < 12 ? fromRight(220 + i * 45) : undefined}>
                 <span className="text-[15px] tabular-nums text-muted">{fmtDate(w.date)}</span>
                 <img src={poster(w.t, 'w154')} alt="" width={40} height={60} className="h-[60px] w-10 rounded-[3px] bg-track object-cover" />
-                <button type="button" onClick={() => onOpen(w.t)} className="min-w-0 border-0 bg-transparent p-0 text-left text-[17px] font-semibold leading-tight text-ink">
+                <button type="button" onClick={e => onOpen(w.t, e)} className="min-w-0 border-0 bg-transparent p-0 text-left text-[17px] font-semibold leading-tight text-ink">
                   {w.t.title}
                 </button>
                 <span className={`whitespace-nowrap rounded-full px-3 py-1 text-sm font-bold ${w.rewatch ? 'bg-[#2A2312] text-gold' : 'bg-[#2A1415] text-[#F07B7B]'}`}>
@@ -119,9 +125,9 @@ export default function History({ p, onOpen, onRewatch }: Props) {
   )
 }
 
-function PosterButton({ t, onOpen }: { t: Title; onOpen: (t: Title) => void }) {
+function PosterButton({ t, onOpen }: { t: Title; onOpen: Props['onOpen'] }) {
   return (
-    <button type="button" onClick={() => onOpen(t)} aria-label={`Details for ${t.title}`} className="shrink-0 border-0 bg-transparent p-0">
+    <button type="button" onClick={e => onOpen(t, e)} aria-label={`Details for ${t.title}`} className="shrink-0 border-0 bg-transparent p-0">
       <img src={poster(t, 'w154')} alt="" width={48} height={72} className="block h-[72px] w-12 rounded-[3px] bg-track object-cover" />
     </button>
   )

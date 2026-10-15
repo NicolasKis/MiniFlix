@@ -1,17 +1,20 @@
-import { useEffect, useState } from 'react'
+﻿import { Fragment, useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
+import { useAnim } from './anim'
 import {
   ERAS, counts, daysUntil, duration, episodes, fmtDate, isDone, isExtra, poster, released, span, titles, today,
-  totalMins, watchCount, watchedMins, yearOf, type Progress, type Title,
+  QUALITY_STYLE, totalMins, totals, watchCount, yearOf, type Progress, type Title,
 } from './data'
 import Details from './Details'
 import History from './History'
 import { Check, Chevron, Logo, Service } from './icons'
-import { useProgress } from './store'
+import { useProgress, useTva, type JellyfinItem } from './store'
+import Tva from './Tva'
 
 const KIND = { movie: 'Film', series: 'Series', special: 'Special' } as const
 const EXTRA_LABEL = { debated: 'Debated canon', side: 'Side story', main: '' } as const
 const eraAt = new Map(ERAS.map(e => [e.start, e]))
 const STOP_LABEL = ['Origins', 'Infinity', 'Multiverse', 'Doomsday']
+const EASE = 'cubic-bezier(.2,.8,.2,1)'
 
 // Which saga each title belongs to, by position in the locked list.
 const eraOf = new Map<string, number>()
@@ -23,14 +26,25 @@ const eraOf = new Map<string, number>()
   }
 }
 
+type Screen = 'timeline' | 'history' | 'tva'
 type Toast = { id: number; label: string; before: Progress }
+// The last thing you did, so its animation can play once (n restarts it).
+type Fx = { id: string; kind: 'tick' | 'untick' | 'season' | 'branch-out'; season?: number; n: number }
 
 export default function App() {
   const { p, save, offline } = useProgress()
+  const tva = useTva()
+  const anim = useAnim()
   const [open, setOpen] = useState<Record<string, boolean>>({})
   const [toast, setToast] = useState<Toast | null>(null)
-  const [screen, setScreen] = useState<'timeline' | 'history'>('timeline')
-  const [detailId, setDetailId] = useState<string | null>(null)
+  const [screen, setScreen] = useState<Screen>('timeline')
+  const [entering, setEntering] = useState<{ screen: Screen; n: number } | null>(null)
+  const [detail, setDetail] = useState<{ id: string; dx: number; dy: number } | null>(null)
+  const [fx, setFx] = useState<Fx | null>(null)
+  const [swapping, setSwapping] = useState(false)
+  const [celebrate, setCelebrate] = useState<{ era: number; n: number } | null>(null)
+  const [travel, setTravel] = useState<{ pos: number } | null>(null)
+  const [arrived, setArrived] = useState<{ era: number; n: number } | null>(null)
   // Hide watched is a per-device preference, so it lives in this browser only.
   const [hideWatched, setHideWatched] = useState(() => {
     try { return localStorage.getItem('st-hide-watched') === '1' } catch { return false }
@@ -46,14 +60,36 @@ export default function App() {
     const timer = setTimeout(() => setToast(null), 5000)
     return () => clearTimeout(timer)
   }, [toast])
+  // Entrance animations run once, right after you switch screens.
+  useEffect(() => {
+    if (!entering) return
+    const timer = setTimeout(() => setEntering(null), 1300)
+    return () => clearTimeout(timer)
+  }, [entering])
+  useEffect(() => {
+    if (!celebrate) return
+    const timer = setTimeout(() => setCelebrate(null), 1800)
+    return () => clearTimeout(timer)
+  }, [celebrate])
+
+  const pctNow = p ? totals(p).pct : 0
+  const shownPct = useRolling(pctNow, anim.on('counter'), entering?.screen === 'timeline' && anim.on('timeline') ? entering.n : 0)
 
   if (!p) {
     return (
       <main className="min-h-dvh grid place-items-center p-6 text-center text-muted">
-        {offline ? "Can't reach the Sacred Timeline server. Check that Tailscale is on, then reload." : 'Loading…'}
+        {offline ? "Can't reach the Sacred Timeline server. Check that Tailscale is on, then reload." : 'Loadingâ€¦'}
       </main>
     )
   }
+
+  const go = (s: Screen) => {
+    if (s === screen) return
+    setScreen(s)
+    setEntering({ screen: s, n: (entering?.n ?? 0) + 1 })
+    window.scrollTo(0, 0)
+  }
+  const play = (next: Omit<Fx, 'n'>) => setFx({ ...next, n: (fx?.n ?? 0) + 1 })
 
   // Every change goes through here; the first tick of the watch-through stamps the start date.
   const commit = (patch: Partial<Progress>) => {
@@ -69,32 +105,48 @@ export default function App() {
       else delete w[k]
     }
     commit({ watched: w })
-    setToast({ id: Date.now(), label, before: p })
+    setToast({ id: (toast?.id ?? 0) + 1, label, before: p })
   }
   const rewatch = (t: Title) => {
     commit({ log: [...p.log, { id: t.id, date: today() }] })
-    setToast({ id: Date.now(), label: `Added a rewatch of ${t.title}`, before: p })
+    setToast({ id: (toast?.id ?? 0) + 1, label: `Added a rewatch of ${t.title}`, before: p })
   }
   const undo = () => {
     if (!toast) return
     save(toast.before)
     setToast(null)
   }
+
+  const { counted, total, watched } = totals(p)
+  const finished = total > 0 && watched >= total
+  const next = counted.find(t => !isDone(t, p))
+  const nextEp = next?.kind === 'series' ? episodes(next).find(e => e.aired && !p.watched[e.key]) : undefined
+
+  // A saga is complete when every released title that counts (main plus extras you added) is watched.
+  const sagaTitles = (i: number) => titles.filter(t => eraOf.get(t.id) === i && counts(t, p))
+  const complete = ERAS.map((_, i) => sagaTitles(i).length > 0 && sagaTitles(i).every(t => isDone(t, p)))
+
   const toggleTitle = (t: Title) => {
     const on = !isDone(t, p)
-    const label = on ? `Marked ${t.title} as watched` : `Unmarked ${t.title}`
+    let label = on ? `Marked ${t.title} as watched` : `Unmarked ${t.title}`
+    const era = eraOf.get(t.id) ?? -1
+    if (on && era >= 0 && sagaTitles(era).every(x => x === t || isDone(x, p))) {
+      label = `${ERAS[era].name} complete!`
+      if (anim.on('celebrate')) setCelebrate({ era, n: (celebrate?.n ?? 0) + 1 })
+    }
+    if (on && t === next && anim.on('upnext')) {
+      setSwapping(true)
+      setTimeout(() => setSwapping(false), 600)
+    }
+    play({ id: t.id, kind: on ? 'tick' : 'untick' })
     if (t.kind === 'series') setWatched(episodes(t).filter(e => e.aired).map(e => e.key), on, label)
     else setWatched([t.id], on, label)
   }
   const flip = (field: 'included' | 'minimised', id: string) => commit({ [field]: { ...p[field], [id]: !p[field][id] } })
-
-  const counted = titles.filter(t => counts(t, p))
-  const total = counted.reduce((a, t) => a + totalMins(t), 0)
-  const watched = counted.reduce((a, t) => a + watchedMins(t, p), 0)
-  const pct = total ? Math.floor((watched / total) * 1000) / 10 : 0
-  const finished = total > 0 && watched >= total
-  const next = counted.find(t => !isDone(t, p))
-  const nextEp = next?.kind === 'series' ? episodes(next).find(e => e.aired && !p.watched[e.key]) : undefined
+  const toggleIncluded = (t: Title) => {
+    if (p.included[t.id]) play({ id: t.id, kind: 'branch-out' })
+    flip('included', t.id)
+  }
 
   // Finish date from your own pace so far: minutes watched per day since the start.
   const daysIn = p.started ? Math.max(1, daysUntil(today()) - daysUntil(p.started)) : 0
@@ -115,12 +167,31 @@ export default function App() {
     const soon = inEra.every(t => !released(t))
     return { era, i, state: soon ? 'soon' : i < currentEra ? 'done' : i === currentEra ? 'here' : 'ahead' }
   })
-  const jumpTo = (i: number) => document.getElementById(`era-${i}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  const centre = (i: number) => ((i + 0.5) * 100) / ERAS.length
+  const jumpTo = (i: number) => {
+    document.getElementById(`era-${i}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (!anim.on('jump')) return
+    // A gold "time traveller" runs along the bar to the stop, then the saga heading flashes.
+    setTravel({ pos: centre(currentEra) })
+    setTimeout(() => setTravel({ pos: centre(i) }), 30)
+    setTimeout(() => {
+      setTravel(null)
+      setArrived(a => ({ era: i, n: (a?.n ?? 0) + 1 }))
+    }, 560)
+  }
+
+  // Jellyfin copies, matched by TMDB id (each Loki season shares the show's id).
+  const jellyfin = new Map<string, JellyfinItem>((tva.jellyfin?.items ?? []).filter(i => i.tmdb).map(i => [`${i.type}/${i.tmdb}`, i]))
+  const onJellyfin = (t: Title) => (t.tmdb ? jellyfin.get(t.tmdb) : undefined)
 
   const hidden = (t: Title) => hideWatched && released(t) && isDone(t, p)
   const hiddenInEra = ERAS.map((_, i) => titles.filter(t => eraOf.get(t.id) === i && hidden(t)).length)
-  const detail = detailId ? titles.find(t => t.id === detailId) : undefined
-  const closeDetail = () => setDetailId(null)
+  const detailTitle = detail ? titles.find(t => t.id === detail.id) : undefined
+  // The details card grows out of whatever you tapped, so remember where that was.
+  const openDetail = (t: Title, e?: MouseEvent<HTMLElement>) => {
+    const r = e?.currentTarget.getBoundingClientRect()
+    setDetail({ id: t.id, dx: r ? Math.round(r.left + r.width / 2 - innerWidth / 2) : 0, dy: r ? Math.round(r.top + r.height / 2 - innerHeight / 2) : 0 })
+  }
 
   // Years show once per run; a branch's rail stays red while the main story before it is done.
   const rail = new Map<string, { showYear: boolean; red: boolean }>()
@@ -136,6 +207,16 @@ export default function App() {
       if (!branch && out) mainDone = done
     }
   }
+
+  const entT = entering?.screen === 'timeline' && anim.on('timeline')
+  const up = (delay: number): CSSProperties | undefined => (entT ? { animation: `st-up 420ms ${EASE} ${delay}ms both` } : undefined)
+  // Timeline entrance: the line draws down and rows rise in, one after another (first dozen only).
+  let rowIdx = 0
+  const rowDelay = (i: number) => 140 + Math.min(i, 12) * 45
+  const enterRow = (i: number) => (entT && i <= 14 ? up(rowDelay(i)) : undefined)
+  const enterRail = (i: number): CSSProperties | undefined =>
+    entT && i <= 14 ? { transformOrigin: 'top', animation: `st-draw-down 260ms ease-out ${rowDelay(i)}ms both` } : undefined
+  const tickFx = anim.on('tick') ? fx : null
 
   return (
     <div className="min-h-dvh">
@@ -156,29 +237,50 @@ export default function App() {
               Sacred<br />Timeline
             </h1>
           </div>
-          <nav aria-label="Screens" className="flex gap-1 rounded-full bg-surface p-1">
-            {(['timeline', 'history'] as const).map(s => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => { setScreen(s); window.scrollTo(0, 0) }}
-                aria-current={screen === s ? 'page' : undefined}
-                className={`h-10 rounded-full border-0 px-4 text-base font-bold capitalize sm:px-[18px] ${screen === s ? 'bg-ink text-bg' : 'bg-transparent text-ink'}`}
+          <div className="flex items-center gap-2">
+            <nav aria-label="Screens" className="flex gap-1 rounded-full bg-surface p-1">
+              {(['timeline', 'history'] as const).map(s => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => go(s)}
+                  aria-current={screen === s ? 'page' : undefined}
+                  className={`h-10 rounded-full border-0 px-4 text-base font-bold capitalize sm:px-[18px] ${screen === s ? 'bg-ink text-bg' : 'bg-transparent text-ink'}`}
+                >
+                  {s}
+                </button>
+              ))}
+            </nav>
+            <button
+              type="button"
+              onClick={() => go('tva')}
+              aria-current={screen === 'tva' ? 'page' : undefined}
+              className={`flex h-12 items-center gap-2 rounded-full border-0 pl-3 pr-4 text-base font-extrabold tracking-[0.04em] ${screen === 'tva' ? 'bg-gold text-bg' : 'bg-surface text-gold'}`}
+            >
+              <svg
+                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+                style={{ transform: `rotate(${screen === 'tva' ? 180 : 0}deg)`, transition: anim.on('tva') ? `transform 420ms ${EASE}` : undefined }}
               >
-                {s}
-              </button>
-            ))}
-          </nav>
+                <path d="M6 3h12M6 21h12M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9s10 4 10 9" />
+                <path d="M9.5 18.5h5l-2.5-2.2z" fill="currentColor" stroke="none" />
+                {entering?.screen === 'tva' && anim.on('tva') && (
+                  <circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none" className="[animation:st-sand_450ms_linear_120ms_2_both]" />
+                )}
+              </svg>
+              TVA
+            </button>
+          </div>
         </header>
 
-        {screen === 'history' ? (
-          <History p={p} onOpen={t => setDetailId(t.id)} onRewatch={rewatch} />
+        {screen === 'tva' ? (
+          <Tva tva={tva} anim={anim} entering={entering?.screen === 'tva'} />
+        ) : screen === 'history' ? (
+          <History p={p} onOpen={openDetail} onRewatch={rewatch} entering={entering?.screen === 'history' && anim.on('history')} />
         ) : (
         <>
-
-        <section aria-label="Progress" className="flex flex-col gap-3.5">
+        <section aria-label="Progress" className="flex flex-col gap-3.5" style={up(0)}>
           <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
-            <span className="font-display text-[clamp(104px,16vw,200px)] font-extrabold leading-[0.8] tracking-[-0.03em]">{pct}%</span>
+            <span className="font-display text-[clamp(104px,16vw,200px)] font-extrabold leading-[0.8] tracking-[-0.03em]">{shownPct}%</span>
             <div className="flex flex-col gap-1 pb-1.5">
               <span className="text-[19px]">{duration(watched)} watched out of {duration(total)}.</span>
               <span className="text-muted">
@@ -190,26 +292,34 @@ export default function App() {
               {leftText && <span>{leftText}</span>}
             </div>
           </div>
-          <div className="h-2.5 bg-track" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Watch-through progress">
-            <div className="h-full bg-red" style={{ width: `${pct}%` }} />
+          <div className="h-2.5 bg-track" role="progressbar" aria-valuenow={pctNow} aria-valuemin={0} aria-valuemax={100} aria-label="Watch-through progress">
+            <div className="h-full bg-red" style={{ width: `${shownPct}%` }} />
           </div>
           <span className="text-[15px] text-muted">Unreleased titles and extras you have not added are not counted.</span>
         </section>
 
-        <section aria-label="Up next" className="flex flex-wrap items-center justify-between gap-x-8 gap-y-5 rounded bg-surface px-6 py-7">
+        <section aria-label="Up next" className="flex flex-wrap items-center justify-between gap-x-8 gap-y-5 rounded bg-surface px-6 py-7" style={up(80)}>
           {next ? (
             <>
-              <div className="flex min-w-0 items-center gap-5">
-                {next.poster && <img src={poster(next, 'w342')} alt="" width={88} height={132} className="h-[132px] w-[88px] shrink-0 rounded object-cover bg-track" />}
+              <div
+                key={next.id}
+                className="flex min-w-0 items-center gap-5"
+                style={swapping ? { animation: `st-swap 440ms ${EASE} both` } : undefined}
+              >
+                {next.poster && (
+                  <button type="button" onClick={e => openDetail(next, e)} aria-label={`Details for ${next.title}`} className="shrink-0 border-0 bg-transparent p-0">
+                    <img src={poster(next, 'w342')} alt="" width={88} height={132} className="block h-[132px] w-[88px] rounded bg-track object-cover" />
+                  </button>
+                )}
                 <div className="flex min-w-0 flex-col gap-1.5">
                   <h2 className="m-0 font-display text-[clamp(36px,5vw,56px)] font-bold leading-[0.95]">
                     <span className="text-gold">{next.title}</span> is next
                   </h2>
                   <div className="flex flex-wrap items-center gap-2.5">
                     <span className="text-muted">
-                      {nextEp ? `Season ${nextEp.season} · Episode ${nextEp.number} · ${duration(nextEp.min)}` : `${KIND[next.kind]} · ${duration(totalMins(next))}`}
+                      {nextEp ? `Season ${nextEp.season} Â· Episode ${nextEp.number} Â· ${duration(nextEp.min)}` : `${KIND[next.kind]} Â· ${duration(totalMins(next))}`}
                     </span>
-                    <Services t={next} />
+                    <Services t={next} jf={onJellyfin(next)} />
                   </div>
                 </div>
               </div>
@@ -233,7 +343,14 @@ export default function App() {
         >
           <div className="relative flex">
             <div className="absolute inset-x-0 top-[13px] h-1 bg-track" />
-            <div className="absolute top-[13px] h-1 bg-red" style={{ left: `${50 / ERAS.length}%`, width: `${(currentEra * 100) / ERAS.length}%` }} />
+            <div className="absolute top-[13px] h-1 bg-red" style={{ left: `${centre(0)}%`, width: `${(currentEra * 100) / ERAS.length}%` }} />
+            {travel && (
+              <span
+                aria-hidden="true"
+                className="absolute top-[9px] z-[2] size-3 rounded-full bg-gold shadow-[0_0_14px_4px_rgba(245,165,36,0.75)]"
+                style={{ left: `calc(${travel.pos}% - 6px)`, transition: 'left 480ms cubic-bezier(.4,0,.2,1)' }}
+              />
+            )}
             {stops.map(({ era, i, state }) => (
               <button
                 key={era.start}
@@ -282,6 +399,7 @@ export default function App() {
         <section aria-label="Timeline" className="flex flex-col">
           {titles.map(t => {
             const era = eraAt.get(t.id)
+            const eraIndex = era ? ERAS.indexOf(era) : -1
             const out = released(t)
             const done = out && isDone(t, p)
             const extra = isExtra(t)
@@ -296,25 +414,54 @@ export default function App() {
             const meta = out
               ? [KIND[t.kind], seasons.length > 1 ? `${seasons.length} seasons` : null, t.kind === 'series' ? `${aired.length} episodes` : null, duration(totalMins(t)), extra ? EXTRA_LABEL[t.category] : null]
               : [KIND[t.kind], t.release ? `Out ${fmtDate(t.release)}` : 'Date to be announced']
+            const mine = tickFx?.id === t.id ? tickFx : null
+            const party = celebrate && celebrate.era === eraOf.get(t.id)
+            const headIdx = era ? rowIdx++ : 0
+            const idx = hidden(t) ? 0 : rowIdx++
 
             return (
               <div key={t.id}>
                 {era && (
-                  <div id={`era-${ERAS.indexOf(era)}`} className="scroll-mt-20 grid grid-cols-[38px_30px_minmax(0,1fr)] gap-x-2 sm:grid-cols-[52px_34px_minmax(0,1fr)] sm:gap-x-3">
+                  <div id={`era-${eraIndex}`} className="scroll-mt-20 grid grid-cols-[38px_30px_minmax(0,1fr)] gap-x-2 sm:grid-cols-[52px_34px_minmax(0,1fr)] sm:gap-x-3">
                     <span />
-                    <div className="relative"><div className={`absolute inset-y-0 left-2.5 w-1 ${railRed ? 'bg-red' : 'bg-track'}`} /></div>
-                    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 pb-3.5 pt-11">
-                      <h2 className="m-0 font-display text-[clamp(34px,4.4vw,48px)] font-extrabold uppercase leading-[0.95]">{era.name}</h2>
-                      <span className="text-[15px] text-muted">{era.years}</span>
+                    <div className="relative">
+                      <div
+                        className={`absolute inset-y-0 left-2.5 w-1 ${railRed ? 'bg-red' : 'bg-track'}`}
+                        style={celebrate?.era === eraIndex ? { animation: 'st-sparks 900ms ease-out both' } : enterRail(headIdx)}
+                      />
+                    </div>
+                    <div className="relative flex flex-col gap-1.5 pb-3.5 pt-11" style={enterRow(headIdx)}>
+                      {celebrate?.era === eraIndex && (
+                        <div aria-hidden="true" className="pointer-events-none absolute -inset-x-2 bottom-1.5 top-9 origin-left rounded-lg bg-[rgba(245,165,36,0.22)] [animation:st-sweep_1300ms_ease-out_both]" />
+                      )}
+                      <h2
+                        key={arrived?.era === eraIndex ? `arrived-${arrived.n}` : 'head'}
+                        className="relative m-0 font-display text-[clamp(34px,4.4vw,48px)] font-extrabold uppercase leading-[0.95]"
+                        style={celebrate?.era === eraIndex ? { animation: 'st-glow-text 1400ms ease-out both' }
+                          : arrived?.era === eraIndex && anim.on('jump') ? { animation: 'st-flash 1000ms ease-out both' } : undefined}
+                      >
+                        {era.name}
+                      </h2>
+                      {complete[eraIndex] && (
+                        <span className="relative flex py-1.5">
+                          <span
+                            className="inline-block rotate-[-4deg] rounded-md border-[3px] border-red px-3 py-0.5 font-display text-[22px] font-extrabold uppercase tracking-[0.06em] text-[#F07B7B]"
+                            style={celebrate?.era === eraIndex ? { animation: `st-stamp-tilt 620ms ${EASE} 250ms both` } : undefined}
+                          >
+                            Saga complete
+                          </span>
+                        </span>
+                      )}
+                      <span className="relative text-[15px] text-muted">{era.years}</span>
                     </div>
                   </div>
                 )}
-                {era && hiddenInEra[ERAS.indexOf(era)] > 0 && (
+                {era && hiddenInEra[eraIndex] > 0 && (
                   <div className="grid grid-cols-[38px_30px_minmax(0,1fr)] gap-x-2 sm:grid-cols-[52px_34px_minmax(0,1fr)] sm:gap-x-3">
                     <span />
                     <div className="relative"><div className={`absolute inset-y-0 left-2.5 w-1 ${railRed ? 'bg-red' : 'bg-track'}`} /></div>
                     <span className="pb-3.5 text-[15px] text-muted">
-                      {hiddenInEra[ERAS.indexOf(era)]} watched {hiddenInEra[ERAS.indexOf(era)] === 1 ? 'title' : 'titles'} hidden
+                      {hiddenInEra[eraIndex]} watched {hiddenInEra[eraIndex] === 1 ? 'title' : 'titles'} hidden
                     </span>
                   </div>
                 )}
@@ -322,31 +469,48 @@ export default function App() {
                 <div className="grid grid-cols-[38px_30px_minmax(0,1fr)] gap-x-2 sm:grid-cols-[52px_34px_minmax(0,1fr)] sm:gap-x-3">
                   <span className="pt-4 text-right font-display text-base font-semibold tabular-nums text-muted sm:text-xl">{showYear ? year : ''}</span>
                   <div className="relative">
-                    <div className={`absolute inset-y-0 left-2.5 w-1 ${railRed ? 'bg-red' : 'bg-track'}`} />
+                    <div className={`absolute inset-y-0 left-2.5 w-1 ${railRed ? 'bg-red' : 'bg-track'}`} style={enterRail(idx)} />
+                    {/* The red line grows down on a tick and drains back up on an untick. */}
+                    {mine && !branch && (mine.kind === 'tick' || mine.kind === 'untick') && (
+                      <div
+                        key={mine.n}
+                        className="absolute inset-y-0 left-2.5 w-1 origin-top bg-red"
+                        style={{ animation: `${mine.kind === 'tick' ? 'st-draw-down 380ms ease-out' : 'st-drain 380ms ease-in'} both` }}
+                      />
+                    )}
                     {branch && (
                       <svg width="34" height="44" viewBox="0 0 34 44" fill="none" aria-hidden="true" className="absolute left-0 top-0">
-                        <path d="M12 2 C12 18 26 14 26 29" stroke="#5A5D66" strokeWidth="3" strokeLinecap="round" />
+                        <path
+                          d="M12 2 C12 18 26 14 26 29" stroke="#5A5D66" strokeWidth="3" strokeLinecap="round"
+                          style={anim.on('branch') && fx?.id === t.id && fx.kind === 'branch-out' ? { strokeDasharray: 40, animation: 'st-branch-draw 420ms ease-out both' } : undefined}
+                        />
                       </svg>
                     )}
                     <div
+                      key={party ? `party-${celebrate!.n}` : mine?.kind === 'tick' ? `tick-${mine.n}` : 'dot'}
                       className="absolute box-border rounded-full"
-                      style={branch
-                        ? { top: 27, left: 19, width: 14, height: 14, border: `3px solid ${done ? '#8A8D96' : '#5A5D66'}`, background: done ? '#8A8D96' : '#0E0F12' }
-                        : { top: 20, left: 3, width: 18, height: 18, border: `4px solid ${!out ? '#F5A524' : done ? '#E23636' : '#4A4D55'}`, background: !out ? '#F5A524' : done ? '#E23636' : '#0E0F12' }}
+                      style={{
+                        ...(branch
+                          ? { top: 27, left: 19, width: 14, height: 14, border: `3px solid ${done ? '#8A8D96' : '#5A5D66'}`, background: done ? '#8A8D96' : '#0E0F12' }
+                          : { top: 20, left: 3, width: 18, height: 18, border: `4px solid ${!out ? '#F5A524' : done ? '#E23636' : '#4A4D55'}`, background: !out ? '#F5A524' : done ? '#E23636' : '#0E0F12' }),
+                        transition: anim.on('branch') ? `left 320ms ${EASE}, top 320ms ${EASE}, width 320ms, height 320ms` : undefined,
+                        animation: party && !branch && out ? `st-sparks 700ms ease-out ${idx * 40}ms both`
+                          : mine?.kind === 'tick' && !branch ? 'st-ring 650ms ease-out both' : undefined,
+                      }}
                     />
                   </div>
 
-                  <div className={mini ? 'pb-2.5 pt-3.5' : 'pb-5 pt-3'} style={{ opacity: branch ? 0.55 : 1 }}>
+                  <div className={mini ? 'pb-2.5 pt-3.5' : 'pb-5 pt-3'} style={{ opacity: branch ? 0.55 : 1, ...enterRow(idx) }}>
                     <div className="flex items-center gap-3.5">
                       {!mini && t.poster && (
-                        <button type="button" onClick={() => setDetailId(t.id)} aria-label={`Details for ${t.title}`} className="shrink-0 border-0 bg-transparent p-0">
+                        <button type="button" onClick={e => openDetail(t, e)} aria-label={`Details for ${t.title}`} className="shrink-0 border-0 bg-transparent p-0">
                           <img src={poster(t, 'w154')} alt="" width={48} height={72} loading="lazy" className="block h-[72px] w-12 rounded-[3px] object-cover bg-track" />
                         </button>
                       )}
                       <div className="flex min-w-0 flex-auto flex-col gap-0.5">
                         <button
                           type="button"
-                          onClick={() => setDetailId(t.id)}
+                          onClick={e => openDetail(t, e)}
                           className={`border-0 bg-transparent p-0 text-left ${mini ? 'text-base font-semibold text-muted' : 'text-[19px] font-semibold leading-tight text-ink'}`}
                         >
                           {t.title}
@@ -354,9 +518,9 @@ export default function App() {
                         {!mini && (
                           <>
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-[15px] text-muted">{meta.filter(Boolean).join(' · ')}</span>
-                              {watchCount(t, p) > 1 && <span className="text-[15px] font-bold text-gold">Watched {watchCount(t, p)}×</span>}
-                              {out && <Services t={t} />}
+                              <span className="text-[15px] text-muted">{meta.filter(Boolean).join(' Â· ')}</span>
+                              {watchCount(t, p) > 1 && <span className="text-[15px] font-bold text-gold">Watched {watchCount(t, p)}Ă—</span>}
+                              {out && <Services t={t} jf={onJellyfin(t)} />}
                             </div>
                             {t.note && <span className="text-[15px] text-muted">{t.note}</span>}
                           </>
@@ -380,9 +544,11 @@ export default function App() {
                           onClick={() => toggleTitle(t)}
                           aria-pressed={done}
                           aria-label={`${done ? 'Unmark' : 'Mark watched:'} ${t.title}`}
-                          className={`grid size-11 shrink-0 place-items-center rounded-full border-2 p-0 active:scale-95 ${done ? 'border-btn bg-btn text-white' : 'border-line bg-transparent text-branch'}`}
+                          className={`grid size-11 shrink-0 place-items-center rounded-full border-2 p-0 transition-colors duration-200 active:scale-95 ${done ? 'border-btn bg-btn text-white' : 'border-line bg-transparent text-branch'}`}
                         >
-                          <Check />
+                          <span key={mine ? mine.n : 'still'} className="grid" style={mine && (mine.kind === 'tick' || mine.kind === 'untick') ? { animation: `st-pop 380ms ${EASE} both` } : undefined}>
+                            <Check />
+                          </span>
                         </button>
                       )}
                       {!out && t.release && (
@@ -396,7 +562,7 @@ export default function App() {
                         type="button"
                         role="switch"
                         aria-checked={included}
-                        onClick={() => flip('included', t.id)}
+                        onClick={() => toggleIncluded(t)}
                         className="mt-3 flex h-11 items-center gap-3 border-0 bg-transparent p-0 text-[15px] font-semibold text-ink"
                       >
                         <span className={`relative inline-block h-[26px] w-[46px] shrink-0 rounded-full ${included ? 'bg-btn' : 'bg-line'}`}>
@@ -423,10 +589,12 @@ export default function App() {
                           const list = eps.filter(e => e.season === s.season)
                           const keys = list.filter(e => e.aired).map(e => e.key)
                           const all = keys.length > 0 && keys.every(k => p.watched[k])
+                          const ripple = anim.on('season') && fx?.id === t.id && fx.kind === 'season' && fx.season === s.season
                           return (
                             <div key={s.season} className="flex flex-col gap-2">
                               <span className="text-[15px] font-bold">Season {s.season}</span>
                               <div className="flex flex-wrap items-center gap-2">
+                                <Fragment key={ripple ? `ripple-${fx!.n}` : 'eps'}>
                                 {list.map(e => {
                                   const on = !!p.watched[e.key]
                                   return (
@@ -438,16 +606,21 @@ export default function App() {
                                       onClick={() => setWatched([e.key], !on, `${on ? 'Unmarked' : 'Marked'} ${t.title} S${s.season} E${e.number}`)}
                                       aria-pressed={on}
                                       aria-label={`Season ${s.season} episode ${e.number}${on ? ', watched' : ''}${e.aired ? '' : ', not out yet'}`}
-                                      className={`size-10 rounded-lg border-0 text-[15px] font-bold tabular-nums ${on ? 'bg-btn text-white' : 'bg-track text-ink'} disabled:cursor-default disabled:opacity-35`}
+                                      className={`size-10 rounded-lg border-0 text-[15px] font-bold tabular-nums transition-colors ${on ? 'bg-btn text-white' : 'bg-track text-ink'} disabled:cursor-default disabled:opacity-35`}
+                                      style={ripple ? { animation: `st-ripple 420ms ease-out ${(e.number - 1) * 45}ms both` } : undefined}
                                     >
                                       {e.number}
                                     </button>
                                   )
                                 })}
+                                </Fragment>
                                 {keys.length > 0 && (
                                   <button
                                     type="button"
-                                    onClick={() => setWatched(keys, !all, `${all ? 'Unmarked' : 'Marked'} ${t.title} season ${s.season}`)}
+                                    onClick={() => {
+                                      if (!all) play({ id: t.id, kind: 'season', season: s.season })
+                                      setWatched(keys, !all, `${all ? 'Unmarked' : 'Marked'} ${t.title} season ${s.season}`)
+                                    }}
                                     className="h-10 rounded-full border-0 bg-ink px-4 text-[15px] font-bold text-bg"
                                   >
                                     {all ? 'Unmark season' : 'Whole season'}
@@ -473,14 +646,15 @@ export default function App() {
           Posters and episode data from TMDB. This app uses the TMDB API but is not endorsed or certified by TMDB.
         </footer>
       </div>
-      {detail && (
+      {detailTitle && (
         <Details
-          t={detail}
+          t={detailTitle}
           p={p}
-          services={<Services t={detail} />}
-          onClose={closeDetail}
-          onToggle={() => toggleTitle(detail)}
-          onRewatch={() => rewatch(detail)}
+          services={<Services t={detailTitle} jf={onJellyfin(detailTitle)} />}
+          from={anim.on('detail') ? detail : null}
+          onClose={() => setDetail(null)}
+          onToggle={() => toggleTitle(detailTitle)}
+          onRewatch={() => rewatch(detailTitle)}
         />
       )}
       <BackToTop raised={!!toast} />
@@ -488,7 +662,7 @@ export default function App() {
         <div
           key={toast.id}
           role="status"
-          className="fixed left-1/2 z-20 flex w-max max-w-[calc(100%-32px)] items-center gap-3.5 overflow-hidden rounded-2xl bg-track py-2.5 pl-3.5 pr-2.5 text-ink shadow-[0_10px_32px_rgba(0,0,0,0.6)] [animation:st-rise_220ms_ease-out_both]"
+          className="fixed left-1/2 z-40 flex w-max max-w-[calc(100%-32px)] items-center gap-3.5 overflow-hidden rounded-2xl bg-track py-2.5 pl-3.5 pr-2.5 text-ink shadow-[0_10px_32px_rgba(0,0,0,0.6)] [animation:st-rise_220ms_ease-out_both]"
           style={{ bottom: 'calc(env(safe-area-inset-bottom) + 20px)', transform: 'translateX(-50%)' }}
         >
           <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true" className="shrink-0">
@@ -504,6 +678,32 @@ export default function App() {
       )}
     </div>
   )
+}
+
+// The big percentage rolls to its new value (and counts up from 0 each time the timeline opens).
+function useRolling(target: number, animate: boolean, fromZero: number) {
+  const [shown, setShown] = useState(target)
+  const shownRef = useRef(target)
+  useEffect(() => {
+    const from = fromZero ? 0 : shownRef.current
+    if ((!animate && !fromZero) || from === target) {
+      shownRef.current = target
+      setShown(target)
+      return
+    }
+    let raf = 0
+    const start = performance.now()
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / 650)
+      const value = Math.round((from + (target - from) * (1 - Math.pow(1 - t, 3))) * 10) / 10
+      shownRef.current = value
+      setShown(value)
+      if (t < 1) raf = requestAnimationFrame(step)
+    }
+    raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
+  }, [target, animate, fromZero])
+  return shown
 }
 
 // Decorative branches on the jump bar, like the logo: gold one survives, grey one is pruned.
@@ -535,7 +735,7 @@ function BackToTop({ raised }: { raised: boolean }) {
     <button
       type="button"
       aria-label="Back to top"
-      onClick={() => window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })}
+      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
       className="fixed right-5 grid size-12 place-items-center rounded-full border-0 bg-ink text-bg shadow-[0_6px_20px_rgba(0,0,0,0.5)] active:scale-95"
       style={{ bottom: `calc(env(safe-area-inset-bottom) + ${raised ? 88 : 20}px)`, transition: 'bottom 200ms ease' }}
     >
@@ -544,11 +744,14 @@ function BackToTop({ raised }: { raised: boolean }) {
   )
 }
 
-function Services({ t }: { t: Title }) {
-  const list = t.where.length ? t.where : ['rent']
+// Where to watch: streaming services, plus your own Jellyfin copy with its quality.
+function Services({ t, jf }: { t: Title; jf?: JellyfinItem }) {
+  const list = t.where.length ? t.where : jf ? [] : ['rent']
   return (
     <span className="inline-flex items-center gap-1.5">
       {list.map(w => <Service key={w} name={w} />)}
+      {jf && <Service name="Jellyfin" />}
+      {jf?.quality && <span className={`whitespace-nowrap rounded-md px-2 py-0.5 text-[13px] font-bold ${QUALITY_STYLE[jf.quality]}`}>{jf.quality}</span>}
     </span>
   )
 }

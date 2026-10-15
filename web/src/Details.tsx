@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+﻿import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { countLabel, duration, fmtDate, isDone, poster, released, totalMins, watchCount, type Progress, type Title } from './data'
 
 const KIND = { movie: 'Film', series: 'Series', special: 'Special' } as const
@@ -8,44 +8,62 @@ type Props = {
   t: Title
   p: Progress
   services: ReactNode
+  // Where the tapped poster sits relative to the screen centre; null skips the zoom.
+  from: { dx: number; dy: number } | null
   onClose: () => void
   onToggle: () => void
   onRewatch: () => void
 }
 
 // The card that opens when you tap a poster or title.
-export default function Details({ t, p, services, onClose, onToggle, onRewatch }: Props) {
+export default function Details({ t, p, services, from, onClose, onToggle, onRewatch }: Props) {
   const closeRef = useRef<HTMLButtonElement>(null)
+  const [closing, setClosing] = useState(false)
   const out = released(t)
   const done = out && isDone(t, p)
+  // With the zoom on, the card shrinks back into the poster before it goes.
+  const close = () => {
+    if (!from) return onClose()
+    setClosing(true)
+    setTimeout(onClose, 220)
+  }
+  const closeRefFn = useRef(close)
+  useEffect(() => { closeRefFn.current = close })
 
   useEffect(() => closeRef.current?.focus(), [])
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && closeRefFn.current()
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [])
+
+  const zoom = from
+    ? ({ '--dx': `${from.dx}px`, '--dy': `${from.dy}px`, animation: closing ? 'st-unzoom 220ms ease-in both' : 'st-zoom 360ms cubic-bezier(.2,.8,.2,1) both' } as CSSProperties)
+    : undefined
+  const fade = from ? { animation: closing ? 'st-fade 220ms ease-in reverse both' : 'st-fade 200ms ease-out both' } : undefined
 
   const meta = out
-    ? [KIND[t.kind], duration(totalMins(t)), EXTRA[t.category] || null].filter(Boolean).join(' · ')
-    : [KIND[t.kind], t.release ? `Out ${fmtDate(t.release)}` : 'Date to be announced'].join(' · ')
+    ? [KIND[t.kind], duration(totalMins(t)), EXTRA[t.category] || null].filter(Boolean).join(' Â· ')
+    : [KIND[t.kind], t.release ? `Out ${fmtDate(t.release)}` : 'Date to be announced'].join(' Â· ')
 
   return (
     <div
-      onClick={onClose}
+      onClick={close}
       className="fixed inset-0 z-30 flex items-center justify-center overflow-y-auto bg-[rgba(5,6,8,0.8)] p-4"
+      style={fade}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-label={t.title}
         onClick={e => e.stopPropagation()}
+        style={zoom}
         className="relative my-auto flex w-full max-w-[760px] flex-wrap gap-6 rounded-2xl bg-surface p-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)]"
       >
         <button
           ref={closeRef}
           type="button"
-          onClick={onClose}
+          onClick={close}
           aria-label="Close"
           className="absolute right-3 top-3 grid size-11 place-items-center rounded-full border-0 bg-track text-ink"
         >
@@ -73,7 +91,7 @@ export default function Details({ t, p, services, onClose, onToggle, onRewatch }
                 aria-pressed={done}
                 className={`h-12 rounded-full border-2 px-[22px] text-[17px] font-bold ${done ? 'border-line bg-transparent text-ink' : 'border-btn bg-btn text-white'}`}
               >
-                {done ? 'Watched in marathon ✓' : 'Mark watched'}
+                {done ? 'Watched in marathon âś“' : 'Mark watched'}
               </button>
               <button type="button" onClick={onRewatch} className="h-12 rounded-full border-2 border-gold bg-transparent px-[22px] text-[17px] font-bold text-gold">
                 + Add rewatch

@@ -7,4 +7,17 @@ services:
       - "127.0.0.1:8090:8090"
     volumes:
       - ./server/pb_data:/pb_data
+    # Jellyfin API key and GitHub token live here on the server only (never in Git).
+    env_file:
+      - path: ./server/.env
+        required: false
+    # Joins Jellyfin's network so the library check can reach it at http://jellyfin:8096.
+    networks:
+      - default
+      - jellyfin
     restart: unless-stopped
+
+networks:
+  jellyfin:
+    name: jellyfin_default
+    external: true
