@@ -431,8 +431,8 @@ function StopBranch({ up = false }: { up?: boolean }) {
     </svg>
   ) : (
     <svg width="56" height="22" viewBox="0 0 56 22" aria-hidden="true" className="absolute left-1/2 top-3 ml-2.5">
-      <path d="M2 3 C12 3 12 17 24 17 H40" fill="none" stroke="#5A5D66" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M44 14 L49 20 M49 14 L44 20" stroke="#5A5D66" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M2 3 C12 3 12 11 24 11 H38" fill="none" stroke="#5A5D66" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M42 8 L47 14 M47 8 L42 14" stroke="#5A5D66" strokeWidth="2.2" strokeLinecap="round" />
     </svg>
   )
 }
