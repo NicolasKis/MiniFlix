@@ -8,6 +8,7 @@ type Props = {
   tva: TvaData
   anim: { prefs: Partial<AnimPrefs>; on: (k: AnimKey) => boolean; set: (k: AnimKey | 'all', v: boolean) => void }
   entering: boolean
+  onReset: () => void
 }
 
 // The server checks on the 1st and 15th of each month.
@@ -27,13 +28,14 @@ const VARIANCE = {
 const stamp = (on: boolean, delay: number): CSSProperties | undefined =>
   on ? { animation: `st-stamp 440ms cubic-bezier(.2,.8,.2,1) ${delay}ms both` } : undefined
 
-export default function Tva({ tva, anim, entering }: Props) {
+export default function Tva({ tva, anim, entering, onReset }: Props) {
   const [busy, setBusy] = useState<'jellyfin' | 'backup' | 'variance' | null>(null)
   const [message, setMessage] = useState<{ task: 'jellyfin' | 'backup' | 'variance'; text: string } | null>(null)
   const [leaving, setLeaving] = useState<string[]>([])
   const [listOpen, setListOpen] = useState(false)
   const [animOpen, setAnimOpen] = useState(false)
-  const [confirm, setConfirm] = useState(false)
+  const [confirm, setConfirm] = useState<'backup' | 'reset' | null>(null)
+  const [wasReset, setWasReset] = useState(false)
   const [fresh, setFresh] = useState<string[]>([])
   const tmdbIds = new Map(titles.map(t => [t.tmdb?.split('/')[1], t]))
   const door = entering && anim.on('tva')
@@ -181,7 +183,7 @@ export default function Tva({ tva, anim, entering }: Props) {
           <span className="font-bold text-gold">NicolasKis/sacred-timeline-backups</span>. It only runs when you press the button.
         </p>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-          <TaskButton busy={busy === 'backup'} sand={tasks} disabled={!!busy} onClick={() => setConfirm(true)} className="border-ink bg-ink text-bg">
+          <TaskButton busy={busy === 'backup'} sand={tasks} disabled={!!busy} onClick={() => setConfirm('backup')} className="border-ink bg-ink text-bg">
             {busy === 'backup' ? 'Backing up…' : 'Back up now'}
           </TaskButton>
           <span role="status" className="flex items-center gap-2 text-muted">
@@ -231,6 +233,16 @@ export default function Tva({ tva, anim, entering }: Props) {
         </div>
       </section>
 
+      {/* For testing: wipes ticks, extras choices, start date and rewatches on every device. */}
+      <section aria-labelledby="st-reset" className="flex flex-col gap-4" style={stamp(door, 470)}>
+        <h2 id="st-reset" className="m-0 text-[17px] font-bold text-ink">Reset the timeline</h2>
+        <p className="m-0 max-w-[62ch] text-muted">Clears every tick, extras you added, your start date and rewatches, on every device. The title list and TVA settings stay.</p>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <button type="button" onClick={() => setConfirm('reset')} className="h-12 rounded-full border-2 border-red bg-transparent px-6 text-[17px] font-bold text-[#F07B7B]">Reset timeline</button>
+          {wasReset && <span role="status" className="text-muted">Timeline reset. Back to 0%.</span>}
+        </div>
+      </section>
+
       <section aria-labelledby="st-about" className="flex flex-col gap-2 text-[15px] text-muted" style={stamp(door, 500)}>
         <h2 id="st-about" className="m-0 mb-1 text-[17px] font-bold text-ink">About</h2>
         <span>Sacred Timeline · {titles.length} titles</span>
@@ -238,7 +250,7 @@ export default function Tva({ tva, anim, entering }: Props) {
       </section>
 
       {confirm && (
-        <div onClick={() => setConfirm(false)} className="fixed inset-0 z-30 flex items-center justify-center bg-[rgba(5,6,8,0.8)] p-4">
+        <div onClick={() => setConfirm(null)} className="fixed inset-0 z-30 flex items-center justify-center bg-[rgba(5,6,8,0.8)] p-4">
           <div
             role="alertdialog"
             aria-modal="true"
@@ -246,11 +258,19 @@ export default function Tva({ tva, anim, entering }: Props) {
             onClick={e => e.stopPropagation()}
             className="flex w-full max-w-[460px] flex-col gap-4 rounded-2xl bg-surface p-7 shadow-[0_20px_60px_rgba(0,0,0,0.6)]"
           >
-            <h2 id="st-confirm" className="m-0 font-display text-[40px] font-extrabold leading-none">Back up now?</h2>
-            <p className="m-0 text-[17px] leading-normal">This saves your progress, rewatch history and Jellyfin title list to NicolasKis/sacred-timeline-backups on GitHub.</p>
+            <h2 id="st-confirm" className="m-0 font-display text-[40px] font-extrabold leading-none">{confirm === 'reset' ? 'Reset the timeline?' : 'Back up now?'}</h2>
+            <p className="m-0 text-[17px] leading-normal">
+              {confirm === 'reset'
+                ? 'Every tick, added extra, start date and rewatch is cleared on all your devices. This can’t be undone.'
+                : 'This saves your progress, rewatch history and Jellyfin title list to NicolasKis/sacred-timeline-backups on GitHub.'}
+            </p>
             <div className="flex flex-wrap justify-end gap-2.5 pt-1">
-              <button type="button" autoFocus onClick={() => setConfirm(false)} className="h-12 rounded-full border-2 border-line bg-transparent px-[22px] text-[17px] font-bold text-ink">Cancel</button>
-              <button type="button" onClick={() => { setConfirm(false); run('backup') }} className="h-12 rounded-full border-2 border-ink bg-ink px-6 text-[17px] font-bold text-bg">Back up</button>
+              <button type="button" autoFocus onClick={() => setConfirm(null)} className="h-12 rounded-full border-2 border-line bg-transparent px-[22px] text-[17px] font-bold text-ink">Cancel</button>
+              {confirm === 'reset' ? (
+                <button type="button" onClick={() => { setConfirm(null); onReset(); setWasReset(true) }} className="h-12 rounded-full border-2 border-btn bg-btn px-6 text-[17px] font-bold text-white">Reset</button>
+              ) : (
+                <button type="button" onClick={() => { setConfirm(null); run('backup') }} className="h-12 rounded-full border-2 border-ink bg-ink px-6 text-[17px] font-bold text-bg">Back up</button>
+              )}
             </div>
           </div>
         </div>

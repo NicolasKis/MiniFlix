@@ -276,7 +276,7 @@ export default function App() {
         </header>
 
         {screen === 'tva' ? (
-          <Tva tva={tva} anim={anim} entering={entering?.screen === 'tva'} />
+          <Tva tva={tva} anim={anim} entering={entering?.screen === 'tva'} onReset={() => save({ watched: {}, included: {}, minimised: {}, started: null, log: [] })} />
         ) : screen === 'history' ? (
           <History p={p} onOpen={openDetail} onRewatch={rewatch} entering={entering?.screen === 'history' && anim.on('history')} />
         ) : (
