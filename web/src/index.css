@@ -34,6 +34,16 @@ button {
   font-family: inherit;
 }
 
+@keyframes st-rise {
+  from { transform: translate(-50%, 16px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+@keyframes st-countdown {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
 :focus-visible {
   outline: 3px solid var(--color-gold);
   outline-offset: 2px;
