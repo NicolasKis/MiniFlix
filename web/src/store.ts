@@ -6,7 +6,7 @@ const pb = new PocketBase('/')
 const progress = pb.collection('progress')
 const ID = 'progressstate01'
 
-const parse = (data: unknown): Progress => ({ watched: {}, included: {}, minimised: {}, started: null, ...(data as Partial<Progress>) })
+const parse = (data: unknown): Progress => ({ watched: {}, included: {}, minimised: {}, started: null, log: [], ...(data as Partial<Progress>) })
 
 // Loads the shared progress record and keeps it live: a tick on one device shows up on the others.
 export function useProgress() {

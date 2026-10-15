@@ -16,7 +16,7 @@ migrate((app) => {
 
   const record = new Record(collection)
   record.set("id", "progressstate01")
-  record.set("data", { watched: {}, included: {}, minimised: {}, started: null })
+  record.set("data", { watched: {}, included: {}, minimised: {}, started: null, log: [] })
   app.save(record)
 }, (app) => {
   app.delete(app.findCollectionByNameOrId("progress"))

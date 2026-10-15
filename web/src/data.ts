@@ -13,12 +13,15 @@ export type Title = {
   seasons?: { season: number; episodes: Episode[] }[]
   note?: string
   poster?: string | null
+  overview?: string
 }
 export type Progress = {
   watched: Record<string, string>
   included: Record<string, boolean>
   minimised: Record<string, boolean>
   started: string | null
+  // Rewatches outside the marathon; they never change the percentage.
+  log: { id: string; date: string }[]
 }
 export type Ep = { key: string; season: number; number: number; min: number; airs: string | null; aired: boolean }
 
@@ -58,6 +61,19 @@ export const isDone = (t: Title, p: Progress) => {
   const aired = episodes(t).filter(e => e.aired)
   return aired.length > 0 && aired.every(e => p.watched[e.key])
 }
+
+// When the marathon tick happened: a film's own date, or a finished series' last episode.
+export const watchedOn = (t: Title, p: Progress): string | null => {
+  if (t.kind !== 'series') return p.watched[t.id] ?? null
+  if (!isDone(t, p)) return null
+  return episodes(t).filter(e => e.aired).map(e => p.watched[e.key]).sort().pop() ?? null
+}
+
+// The marathon tick counts as one watch, every logged rewatch as another.
+export const watchCount = (t: Title, p: Progress) =>
+  (released(t) && isDone(t, p) ? 1 : 0) + p.log.filter(e => e.id === t.id).length
+
+export const countLabel = (n: number) => (n === 0 ? 'Not watched yet' : n === 1 ? 'Watched once' : `Watched ${n}×`)
 
 export const isExtra = (t: Title) => t.category !== 'main'
 export const counts = (t: Title, p: Progress) => released(t) && (!isExtra(t) || !!p.included[t.id])

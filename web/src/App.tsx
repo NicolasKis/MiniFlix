@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import {
   ERAS, counts, daysUntil, duration, episodes, fmtDate, isDone, isExtra, poster, released, span, titles, today,
-  totalMins, watchedMins, yearOf, type Progress, type Title,
+  totalMins, watchCount, watchedMins, yearOf, type Progress, type Title,
 } from './data'
+import Details from './Details'
+import History from './History'
 import { Check, Chevron, Logo, Service } from './icons'
 import { useProgress } from './store'
 
@@ -27,6 +29,16 @@ export default function App() {
   const { p, save, offline } = useProgress()
   const [open, setOpen] = useState<Record<string, boolean>>({})
   const [toast, setToast] = useState<Toast | null>(null)
+  const [screen, setScreen] = useState<'timeline' | 'history'>('timeline')
+  const [detailId, setDetailId] = useState<string | null>(null)
+  // Hide watched is a per-device preference, so it lives in this browser only.
+  const [hideWatched, setHideWatched] = useState(() => {
+    try { return localStorage.getItem('st-hide-watched') === '1' } catch { return false }
+  })
+  const toggleHide = () => {
+    setHideWatched(!hideWatched)
+    try { localStorage.setItem('st-hide-watched', hideWatched ? '0' : '1') } catch { /* private mode: keep it for this visit */ }
+  }
 
   // The Undo bar disappears 5 seconds after the last tick.
   useEffect(() => {
@@ -58,6 +70,10 @@ export default function App() {
     }
     commit({ watched: w })
     setToast({ id: Date.now(), label, before: p })
+  }
+  const rewatch = (t: Title) => {
+    commit({ log: [...p.log, { id: t.id, date: today() }] })
+    setToast({ id: Date.now(), label: `Added a rewatch of ${t.title}`, before: p })
   }
   const undo = () => {
     if (!toast) return
@@ -101,6 +117,11 @@ export default function App() {
   })
   const jumpTo = (i: number) => document.getElementById(`era-${i}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
+  const hidden = (t: Title) => hideWatched && released(t) && isDone(t, p)
+  const hiddenInEra = ERAS.map((_, i) => titles.filter(t => eraOf.get(t.id) === i && hidden(t)).length)
+  const detail = detailId ? titles.find(t => t.id === detailId) : undefined
+  const closeDetail = () => setDetailId(null)
+
   // Years show once per run; a branch's rail stays red while the main story before it is done.
   const rail = new Map<string, { showYear: boolean; red: boolean }>()
   {
@@ -128,15 +149,32 @@ export default function App() {
         className="mx-auto flex max-w-[1120px] flex-col gap-10 px-5"
         style={{ paddingTop: offline ? 20 : 'calc(env(safe-area-inset-top) + 20px)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}
       >
-        <header className="flex items-center justify-between gap-4">
+        <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
           <div className="flex items-center gap-3">
             <Logo />
             <h1 className="m-0 font-display text-[28px] font-extrabold uppercase leading-[0.9] tracking-[-0.01em]">
               Sacred<br />Timeline
             </h1>
           </div>
-          <span className="text-[15px] text-muted">{titles.length} titles in story order</span>
+          <nav aria-label="Screens" className="flex gap-1 rounded-full bg-surface p-1">
+            {(['timeline', 'history'] as const).map(s => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => { setScreen(s); window.scrollTo(0, 0) }}
+                aria-current={screen === s ? 'page' : undefined}
+                className={`h-10 rounded-full border-0 px-4 text-base font-bold capitalize sm:px-[18px] ${screen === s ? 'bg-ink text-bg' : 'bg-transparent text-ink'}`}
+              >
+                {s}
+              </button>
+            ))}
+          </nav>
         </header>
+
+        {screen === 'history' ? (
+          <History p={p} onOpen={t => setDetailId(t.id)} onRewatch={rewatch} />
+        ) : (
+        <>
 
         <section aria-label="Progress" className="flex flex-col gap-3.5">
           <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
@@ -226,6 +264,21 @@ export default function App() {
           </div>
         </nav>
 
+        <div className="-mb-7 flex justify-end">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={hideWatched}
+            onClick={toggleHide}
+            className="flex h-11 items-center gap-3 border-0 bg-transparent p-0 text-[15px] font-semibold text-ink"
+          >
+            Hide watched
+            <span className={`relative inline-block h-[26px] w-[46px] shrink-0 rounded-full ${hideWatched ? 'bg-btn' : 'bg-line'}`}>
+              <span className="absolute top-[3px] size-5 rounded-full bg-ink transition-[left]" style={{ left: hideWatched ? 23 : 3 }} />
+            </span>
+          </button>
+        </div>
+
         <section aria-label="Timeline" className="flex flex-col">
           {titles.map(t => {
             const era = eraAt.get(t.id)
@@ -256,6 +309,16 @@ export default function App() {
                     </div>
                   </div>
                 )}
+                {era && hiddenInEra[ERAS.indexOf(era)] > 0 && (
+                  <div className="grid grid-cols-[38px_30px_minmax(0,1fr)] gap-x-2 sm:grid-cols-[52px_34px_minmax(0,1fr)] sm:gap-x-3">
+                    <span />
+                    <div className="relative"><div className={`absolute inset-y-0 left-2.5 w-1 ${railRed ? 'bg-red' : 'bg-track'}`} /></div>
+                    <span className="pb-3.5 text-[15px] text-muted">
+                      {hiddenInEra[ERAS.indexOf(era)]} watched {hiddenInEra[ERAS.indexOf(era)] === 1 ? 'title' : 'titles'} hidden
+                    </span>
+                  </div>
+                )}
+                {!hidden(t) && (
                 <div className="grid grid-cols-[38px_30px_minmax(0,1fr)] gap-x-2 sm:grid-cols-[52px_34px_minmax(0,1fr)] sm:gap-x-3">
                   <span className="pt-4 text-right font-display text-base font-semibold tabular-nums text-muted sm:text-xl">{showYear ? year : ''}</span>
                   <div className="relative">
@@ -276,14 +339,23 @@ export default function App() {
                   <div className={mini ? 'pb-2.5 pt-3.5' : 'pb-5 pt-3'} style={{ opacity: branch ? 0.55 : 1 }}>
                     <div className="flex items-center gap-3.5">
                       {!mini && t.poster && (
-                        <img src={poster(t, 'w154')} alt="" width={48} height={72} loading="lazy" className="h-[72px] w-12 shrink-0 rounded-[3px] object-cover bg-track" />
+                        <button type="button" onClick={() => setDetailId(t.id)} aria-label={`Details for ${t.title}`} className="shrink-0 border-0 bg-transparent p-0">
+                          <img src={poster(t, 'w154')} alt="" width={48} height={72} loading="lazy" className="block h-[72px] w-12 rounded-[3px] object-cover bg-track" />
+                        </button>
                       )}
                       <div className="flex min-w-0 flex-auto flex-col gap-0.5">
-                        <span className={mini ? 'text-base font-semibold text-muted' : 'text-[19px] font-semibold leading-tight'}>{t.title}</span>
+                        <button
+                          type="button"
+                          onClick={() => setDetailId(t.id)}
+                          className={`border-0 bg-transparent p-0 text-left ${mini ? 'text-base font-semibold text-muted' : 'text-[19px] font-semibold leading-tight text-ink'}`}
+                        >
+                          {t.title}
+                        </button>
                         {!mini && (
                           <>
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="text-[15px] text-muted">{meta.filter(Boolean).join(' · ')}</span>
+                              {watchCount(t, p) > 1 && <span className="text-[15px] font-bold text-gold">Watched {watchCount(t, p)}×</span>}
                               {out && <Services t={t} />}
                             </div>
                             {t.note && <span className="text-[15px] text-muted">{t.note}</span>}
@@ -389,15 +461,28 @@ export default function App() {
                     )}
                   </div>
                 </div>
+                )}
               </div>
             )
           })}
         </section>
+        </>
+        )}
 
         <footer className="text-sm text-muted">
           Posters and episode data from TMDB. This app uses the TMDB API but is not endorsed or certified by TMDB.
         </footer>
       </div>
+      {detail && (
+        <Details
+          t={detail}
+          p={p}
+          services={<Services t={detail} />}
+          onClose={closeDetail}
+          onToggle={() => toggleTitle(detail)}
+          onRewatch={() => rewatch(detail)}
+        />
+      )}
       <BackToTop raised={!!toast} />
       {toast && (
         <div
@@ -421,7 +506,6 @@ export default function App() {
   )
 }
 
-// Appears once you are well down the list.
 // Decorative branches on the jump bar, like the logo: gold one survives, grey one is pruned.
 function StopBranch({ up = false }: { up?: boolean }) {
   return up ? (
@@ -437,6 +521,7 @@ function StopBranch({ up = false }: { up?: boolean }) {
   )
 }
 
+// Appears once you are well down the list.
 function BackToTop({ raised }: { raised: boolean }) {
   const [show, setShow] = useState(false)
   useEffect(() => {
