@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0E0F12;
+  --color-surface: #181A1F;
+  --color-track: #23262D;
+  --color-line: #3A3D45;
+  --color-branch: #5A5D66;
+  --color-ink: #F2EFEA;
+  --color-muted: #A7A39C;
+  --color-red: #E23636;
+  --color-btn: #D32F2F;
+  --color-gold: #F5A524;
+  --font-sans: "Barlow", system-ui, sans-serif;
+  --font-display: "Barlow Condensed", "Barlow", sans-serif;
+}
+
+html {
+  background: var(--color-bg);
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.45;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-gold);
+  outline-offset: 2px;
+}

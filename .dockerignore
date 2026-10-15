@@ -1,0 +1,7 @@
+.env
+**/node_modules
+web/dist
+server/pb_data
+server/bin
+.claude
+.git

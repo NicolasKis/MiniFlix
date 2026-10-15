@@ -1,0 +1,10 @@
+services:
+  sacred-timeline:
+    build: .
+    container_name: sacred-timeline
+    # Only the server itself can reach it; Tailscale serve publishes it to your devices.
+    ports:
+      - "127.0.0.1:8090:8090"
+    volumes:
+      - ./server/pb_data:/pb_data
+    restart: unless-stopped

@@ -1,0 +1,1818 @@
+{
+ "updated": "2026-10-15",
+ "titles": [
+  {
+   "id": "first-avenger",
+   "title": "Captain America: The First Avenger",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "1943–1945",
+   "release": "2011-07-22",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 124,
+   "poster": "/vSNxAJTlD0r02V9sPYpOjqDZXUK.jpg",
+   "tmdb": "movie/1771"
+  },
+  {
+   "id": "agent-carter",
+   "title": "Agent Carter",
+   "kind": "series",
+   "category": "debated",
+   "setIn": "1946–1947",
+   "release": "2015-01-06",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      43,
+      42,
+      43,
+      43,
+      43,
+      43,
+      43,
+      43
+     ]
+    },
+    {
+     "season": 2,
+     "episodes": [
+      44,
+      44,
+      44,
+      44,
+      43,
+      44,
+      43,
+      43,
+      43,
+      42
+     ]
+    }
+   ],
+   "source": "tvmaze:336",
+   "poster": "/fe79VYyLp5ZBstpJ4oukpuUT3B.jpg",
+   "tmdb": "tv/61550"
+  },
+  {
+   "id": "captain-marvel",
+   "title": "Captain Marvel",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "1995",
+   "release": "2019-03-06",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 127,
+   "poster": "/AtsgWhDnHTq68L0lLsUrCnM7TjG.jpg",
+   "tmdb": "movie/299537"
+  },
+  {
+   "id": "iron-man",
+   "title": "Iron Man",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2008",
+   "release": "2008-04-30",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 126,
+   "poster": "/78lPtwv72eTNqFW9COBYI0dWDJa.jpg",
+   "tmdb": "movie/1726"
+  },
+  {
+   "id": "iron-man-2",
+   "title": "Iron Man 2",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2010",
+   "release": "2010-04-28",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 124,
+   "poster": "/6WBeq4fCfn7AN0o21W9qNcRF2l9.jpg",
+   "tmdb": "movie/10138"
+  },
+  {
+   "id": "incredible-hulk",
+   "title": "The Incredible Hulk",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2010",
+   "release": "2008-06-12",
+   "where": [],
+   "runtime": 114,
+   "note": "Not on your services in Slovakia: rent or buy.",
+   "poster": "/gKzYx79y0AQTL4UAk1cBQJ3nvrm.jpg",
+   "tmdb": "movie/1724"
+  },
+  {
+   "id": "thor",
+   "title": "Thor",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2010",
+   "release": "2011-04-27",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 115,
+   "poster": "/prSfAi1xGrhLQNxVSUFh61xQ4Qy.jpg",
+   "tmdb": "movie/10195"
+  },
+  {
+   "id": "avengers",
+   "title": "The Avengers",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2012",
+   "release": "2012-04-25",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 143,
+   "poster": "/RYMX2wcKCBAr24UyPD7xwmjaTn.jpg",
+   "tmdb": "movie/24428"
+  },
+  {
+   "id": "iron-man-3",
+   "title": "Iron Man 3",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2012",
+   "release": "2013-04-18",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 130,
+   "poster": "/qhPtAc1TKbMPqNvcdXSOn9Bn7hZ.jpg",
+   "tmdb": "movie/68721"
+  },
+  {
+   "id": "thor-dark-world",
+   "title": "Thor: The Dark World",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2013",
+   "release": "2013-10-30",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 112,
+   "poster": "/wp6OxE4poJ4G7c0U2ZIXasTSMR7.jpg",
+   "tmdb": "movie/76338"
+  },
+  {
+   "id": "winter-soldier",
+   "title": "Captain America: The Winter Soldier",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2014",
+   "release": "2014-03-20",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 136,
+   "poster": "/tVFRpFw3xTedgPGqxW0AOI8Qhh0.jpg",
+   "tmdb": "movie/100402"
+  },
+  {
+   "id": "agents-of-shield",
+   "title": "Agents of S.H.I.E.L.D.",
+   "kind": "series",
+   "category": "debated",
+   "setIn": "2013–2020",
+   "release": "2013-09-24",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      45,
+      42,
+      44,
+      43,
+      43,
+      43,
+      43,
+      43,
+      44,
+      42,
+      43,
+      44,
+      43,
+      43,
+      44,
+      42,
+      44,
+      44,
+      43,
+      44,
+      43,
+      43
+     ]
+    },
+    {
+     "season": 2,
+     "episodes": [
+      44,
+      43,
+      44,
+      42,
+      44,
+      42,
+      43,
+      44,
+      44,
+      44,
+      44,
+      42,
+      44,
+      44,
+      43,
+      43,
+      43,
+      43,
+      42,
+      44,
+      44,
+      44
+     ]
+    },
+    {
+     "season": 3,
+     "episodes": [
+      44,
+      43,
+      42,
+      43,
+      44,
+      43,
+      44,
+      44,
+      44,
+      43,
+      44,
+      44,
+      43,
+      42,
+      44,
+      44,
+      44,
+      43,
+      42,
+      43,
+      43,
+      44
+     ]
+    },
+    {
+     "season": 4,
+     "episodes": [
+      44,
+      44,
+      44,
+      44,
+      43,
+      43,
+      43,
+      44,
+      44,
+      44,
+      44,
+      44,
+      44,
+      44,
+      44,
+      44,
+      44,
+      44,
+      44,
+      43,
+      44,
+      40
+     ]
+    },
+    {
+     "season": 5,
+     "episodes": [
+      44,
+      44,
+      44,
+      44,
+      44,
+      44,
+      42,
+      44,
+      43,
+      44,
+      44,
+      45,
+      44,
+      44,
+      45,
+      44,
+      43,
+      42,
+      44,
+      43,
+      44,
+      44
+     ]
+    },
+    {
+     "season": 6,
+     "episodes": [
+      44,
+      45,
+      45,
+      43,
+      45,
+      45,
+      44,
+      44,
+      44,
+      44,
+      45,
+      43,
+      45
+     ]
+    },
+    {
+     "season": 7,
+     "episodes": [
+      45,
+      44,
+      44,
+      44,
+      43,
+      44,
+      45,
+      44,
+      44,
+      43,
+      44,
+      44,
+      45
+     ]
+    }
+   ],
+   "source": "tvmaze:31",
+   "note": "Runs alongside the films for years; Marvel never confirmed it as canon.",
+   "poster": "/gHUCCMy1vvj58tzE3dZqeC9SXus.jpg",
+   "tmdb": "tv/1403"
+  },
+  {
+   "id": "gotg",
+   "title": "Guardians of the Galaxy",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2014",
+   "release": "2014-07-30",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 121,
+   "poster": "/r7vmZjiyZw9rpJMQJdXpjgiCOk9.jpg",
+   "tmdb": "movie/118340"
+  },
+  {
+   "id": "gotg-2",
+   "title": "Guardians of the Galaxy Vol. 2",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2014",
+   "release": "2017-04-25",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 137,
+   "poster": "/y4MBh0EjBlMuOzv9axM4qJlmhzz.jpg",
+   "tmdb": "movie/283995"
+  },
+  {
+   "id": "i-am-groot",
+   "title": "I Am Groot",
+   "kind": "series",
+   "category": "side",
+   "setIn": "2014–2015",
+   "release": "2022-08-10",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      6,
+      6,
+      6,
+      6,
+      5
+     ]
+    },
+    {
+     "season": 2,
+     "episodes": [
+      5,
+      4,
+      5,
+      4,
+      6
+     ]
+    }
+   ],
+   "source": "tvmaze:52351",
+   "note": "Short cartoons about Baby Groot.",
+   "poster": "/3QfQYECgu6DX5UUWCBvv1Fl0BAJ.jpg",
+   "tmdb": "tv/232125"
+  },
+  {
+   "id": "daredevil",
+   "title": "Daredevil",
+   "kind": "series",
+   "category": "main",
+   "setIn": "2015–2018",
+   "release": "2015-04-10",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      53,
+      53,
+      53,
+      53,
+      56,
+      49,
+      51,
+      54,
+      58,
+      57,
+      59,
+      60,
+      56
+     ]
+    },
+    {
+     "season": 2,
+     "episodes": [
+      49,
+      50,
+      48,
+      60,
+      56,
+      56,
+      57,
+      55,
+      60,
+      53,
+      56,
+      53,
+      59
+     ]
+    },
+    {
+     "season": 3,
+     "episodes": [
+      54,
+      50,
+      50,
+      55,
+      50,
+      55,
+      50,
+      51,
+      54,
+      47,
+      50,
+      56,
+      54
+     ]
+    }
+   ],
+   "source": "tvmaze:1369",
+   "note": "Netflix show, now on Disney+ and in Marvel's official timeline.",
+   "poster": "/QWbPaDxiB6LW2LjASknzYBvjMj.jpg",
+   "tmdb": "tv/61889"
+  },
+  {
+   "id": "jessica-jones",
+   "title": "Jessica Jones",
+   "kind": "series",
+   "category": "main",
+   "setIn": "2015–2019",
+   "release": "2015-11-20",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      53,
+      52,
+      50,
+      52,
+      55,
+      57,
+      52,
+      57,
+      55,
+      52,
+      55,
+      54,
+      54
+     ]
+    },
+    {
+     "season": 2,
+     "episodes": [
+      56,
+      55,
+      50,
+      53,
+      49,
+      54,
+      50,
+      50,
+      55,
+      49,
+      47,
+      53,
+      52
+     ]
+    },
+    {
+     "season": 3,
+     "episodes": [
+      52,
+      55,
+      56,
+      46,
+      53,
+      53,
+      50,
+      44,
+      52,
+      50,
+      48,
+      49,
+      51
+     ]
+    }
+   ],
+   "source": "tvmaze:1370",
+   "poster": "/oxnWofiE9fHOgUfs9NJa6nG6NTR.jpg",
+   "tmdb": "tv/38472"
+  },
+  {
+   "id": "age-of-ultron",
+   "title": "Avengers: Age of Ultron",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2015",
+   "release": "2015-04-22",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 141,
+   "poster": "/4ssDuvEDkSArWEdyBl2X5EHvYKU.jpg",
+   "tmdb": "movie/99861"
+  },
+  {
+   "id": "ant-man",
+   "title": "Ant-Man",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2015",
+   "release": "2015-07-14",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 117,
+   "poster": "/rQRnQfUl3kfp78nCWq8Ks04vnq1.jpg",
+   "tmdb": "movie/102899"
+  },
+  {
+   "id": "luke-cage",
+   "title": "Luke Cage",
+   "kind": "series",
+   "category": "main",
+   "setIn": "2016–2018",
+   "release": "2016-09-30",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      55,
+      59,
+      57,
+      53,
+      52,
+      54,
+      52,
+      49,
+      66,
+      48,
+      51,
+      62,
+      46
+     ]
+    },
+    {
+     "season": 2,
+     "episodes": [
+      56,
+      55,
+      60,
+      54,
+      58,
+      64,
+      56,
+      55,
+      59,
+      59,
+      56,
+      62,
+      69
+     ]
+    }
+   ],
+   "source": "tvmaze:2174",
+   "poster": "/yzM1hMB3PUJqbISX0f421b3xOjB.jpg",
+   "tmdb": "tv/62126"
+  },
+  {
+   "id": "iron-fist",
+   "title": "Iron Fist",
+   "kind": "series",
+   "category": "main",
+   "setIn": "2016–2018",
+   "release": "2017-03-17",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      57,
+      62,
+      60,
+      54,
+      57,
+      53,
+      59,
+      55,
+      55,
+      57,
+      53,
+      50,
+      54
+     ]
+    },
+    {
+     "season": 2,
+     "episodes": [
+      57,
+      53,
+      52,
+      53,
+      55,
+      51,
+      54,
+      49,
+      50,
+      52
+     ]
+    }
+   ],
+   "source": "tvmaze:2175",
+   "poster": "/4l6KD9HhtD6nCDEfg10Lp6C6zah.jpg",
+   "tmdb": "tv/62127"
+  },
+  {
+   "id": "defenders",
+   "title": "The Defenders",
+   "kind": "series",
+   "category": "main",
+   "setIn": "2016",
+   "release": "2017-08-18",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      51,
+      44,
+      54,
+      44,
+      50,
+      51,
+      45,
+      55
+     ]
+    }
+   ],
+   "source": "tvmaze:2176",
+   "poster": "/49XzINhH4LFsgz7cx6TOPcHUJUL.jpg",
+   "tmdb": "tv/62285"
+  },
+  {
+   "id": "civil-war",
+   "title": "Captain America: Civil War",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2016",
+   "release": "2016-04-27",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 147,
+   "poster": "/rAGiXaUfPzY7CDEyNKUofk3Kw2e.jpg",
+   "tmdb": "movie/271110"
+  },
+  {
+   "id": "black-widow",
+   "title": "Black Widow",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2016",
+   "release": "2021-07-07",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 134,
+   "poster": "/qAZ0pzat24kLdO3o8ejmbLxyOac.jpg",
+   "tmdb": "movie/497698"
+  },
+  {
+   "id": "black-panther",
+   "title": "Black Panther",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2016",
+   "release": "2018-02-13",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 135,
+   "poster": "/uxzzxijgPIY7slzFvMotPv8wjKA.jpg",
+   "tmdb": "movie/284054"
+  },
+  {
+   "id": "homecoming",
+   "title": "Spider-Man: Homecoming",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2016",
+   "release": "2017-07-05",
+   "where": [
+    "Disney+",
+    "Netflix",
+    "HBO Max"
+   ],
+   "runtime": 133,
+   "poster": "/c24sv2weTHPsmDa7jEMN0m2P3RT.jpg",
+   "tmdb": "movie/315635"
+  },
+  {
+   "id": "punisher",
+   "title": "The Punisher",
+   "kind": "series",
+   "category": "main",
+   "setIn": "2017–2019",
+   "release": "2017-11-17",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      52,
+      58,
+      58,
+      50,
+      56,
+      56,
+      49,
+      54,
+      55,
+      50,
+      53,
+      52,
+      56
+     ]
+    },
+    {
+     "season": 2,
+     "episodes": [
+      53,
+      54,
+      51,
+      57,
+      51,
+      56,
+      51,
+      48,
+      57,
+      47,
+      54,
+      49,
+      57
+     ]
+    }
+   ],
+   "source": "tvmaze:16544",
+   "poster": "/tM6xqRKXoloH9UchaJEyyRE9O1w.jpg",
+   "tmdb": "tv/67178"
+  },
+  {
+   "id": "doctor-strange",
+   "title": "Doctor Strange",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2016–2017",
+   "release": "2016-10-25",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 130,
+   "poster": "/uGBVj3bEbCoZbDjjl9wTxcygko1.jpg",
+   "tmdb": "movie/284052"
+  },
+  {
+   "id": "ragnarok",
+   "title": "Thor: Ragnarok",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2017",
+   "release": "2017-10-24",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 131,
+   "poster": "/rzRwTcFvttcN1ZpX2xv4j3tSdJu.jpg",
+   "tmdb": "movie/284053"
+  },
+  {
+   "id": "ant-man-wasp",
+   "title": "Ant-Man and the Wasp",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2018",
+   "release": "2018-07-04",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 118,
+   "poster": "/cFQEO687n1K6umXbInzocxcnAQz.jpg",
+   "tmdb": "movie/363088"
+  },
+  {
+   "id": "infinity-war",
+   "title": "Avengers: Infinity War",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2018",
+   "release": "2018-04-25",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 149,
+   "poster": "/7WsyChQLEftFiDOVTGkv3hFpyyt.jpg",
+   "tmdb": "movie/299536"
+  },
+  {
+   "id": "endgame",
+   "title": "Avengers: Endgame",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2018–2023",
+   "release": "2019-04-24",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 182,
+   "poster": "/bR8ISy1O9XQxqiy0fQFw2BX72RQ.jpg",
+   "tmdb": "movie/299534"
+  },
+  {
+   "id": "loki-1",
+   "title": "Loki · Season 1",
+   "kind": "series",
+   "category": "main",
+   "setIn": "Outside time",
+   "release": "2021-06-09",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      53,
+      56,
+      44,
+      50,
+      51,
+      48
+     ]
+    }
+   ],
+   "source": "tvmaze:41007",
+   "poster": "/kEl2t3OhXc3Zb9FBh1AuYzRTgZp.jpg",
+   "tmdb": "tv/84958"
+  },
+  {
+   "id": "what-if",
+   "title": "What If...?",
+   "kind": "series",
+   "category": "side",
+   "setIn": "Alternate universes",
+   "release": "2021-08-11",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      36,
+      37,
+      35,
+      38,
+      34,
+      36,
+      38,
+      32,
+      37
+     ]
+    },
+    {
+     "season": 2,
+     "episodes": [
+      31,
+      32,
+      29,
+      34,
+      33,
+      34,
+      31,
+      32,
+      33
+     ]
+    },
+    {
+     "season": 3,
+     "episodes": [
+      31,
+      30,
+      33,
+      32,
+      33,
+      32,
+      28,
+      34
+     ]
+    }
+   ],
+   "source": "tvmaze:41750",
+   "poster": "/lztz5XBMG1x6Y5ubz7CxfPFsAcW.jpg",
+   "tmdb": "tv/91363"
+  },
+  {
+   "id": "marvel-zombies",
+   "title": "Marvel Zombies",
+   "kind": "series",
+   "category": "side",
+   "setIn": "Alternate universe",
+   "release": "2025-09-24",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      38,
+      34,
+      33,
+      32
+     ]
+    }
+   ],
+   "source": "tvmaze:58949",
+   "poster": "/mwKj9ERGFXsWot0nXgQ5yMQf9I7.jpg",
+   "tmdb": "tv/138505"
+  },
+  {
+   "id": "wandavision",
+   "title": "WandaVision",
+   "kind": "series",
+   "category": "main",
+   "setIn": "2023",
+   "release": "2021-01-15",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      31,
+      39,
+      35,
+      37,
+      43,
+      40,
+      39,
+      48,
+      51
+     ]
+    }
+   ],
+   "source": "tvmaze:41748",
+   "poster": "/ijWWwINc8h71NQ8j1LTJMFSj5wr.jpg",
+   "tmdb": "tv/85271"
+  },
+  {
+   "id": "falcon-winter-soldier",
+   "title": "The Falcon and the Winter Soldier",
+   "kind": "series",
+   "category": "main",
+   "setIn": "2024",
+   "release": "2021-03-19",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      51,
+      52,
+      55,
+      56,
+      62,
+      54
+     ]
+    }
+   ],
+   "source": "tvmaze:41749",
+   "poster": "/6kbAMLteGO8yyewYau6bJ683sw7.jpg",
+   "tmdb": "tv/88396"
+  },
+  {
+   "id": "shang-chi",
+   "title": "Shang-Chi and the Legend of the Ten Rings",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2024",
+   "release": "2021-09-01",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 132,
+   "poster": "/9f2Q0U3IOsLgrI2HkvldwSABZy5.jpg",
+   "tmdb": "movie/566525"
+  },
+  {
+   "id": "eternals",
+   "title": "Eternals",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2024",
+   "release": "2021-11-03",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 156,
+   "poster": "/lFByFSLV5WDJEv3KabbdAF959F2.jpg",
+   "tmdb": "movie/524434"
+  },
+  {
+   "id": "far-from-home",
+   "title": "Spider-Man: Far From Home",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2024",
+   "release": "2019-06-28",
+   "where": [
+    "Disney+",
+    "Netflix",
+    "HBO Max"
+   ],
+   "runtime": 129,
+   "poster": "/4q2NNj4S5dG2RLF9CpXsej7yXl.jpg",
+   "tmdb": "movie/429617"
+  },
+  {
+   "id": "no-way-home",
+   "title": "Spider-Man: No Way Home",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2024",
+   "release": "2021-12-15",
+   "where": [
+    "Disney+",
+    "Netflix",
+    "HBO Max"
+   ],
+   "runtime": 148,
+   "poster": "/1g0dhYtq4irTY1GPXvft6k4YLjm.jpg",
+   "tmdb": "movie/634649"
+  },
+  {
+   "id": "multiverse-of-madness",
+   "title": "Doctor Strange in the Multiverse of Madness",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2024",
+   "release": "2022-05-04",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 126,
+   "poster": "/ddJcSKbcp4rKZTmuyWaMhuwcfMz.jpg",
+   "tmdb": "movie/453395"
+  },
+  {
+   "id": "hawkeye",
+   "title": "Hawkeye",
+   "kind": "series",
+   "category": "main",
+   "setIn": "Christmas 2024",
+   "release": "2021-11-24",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      51,
+      52,
+      44,
+      42,
+      46,
+      62
+     ]
+    }
+   ],
+   "source": "tvmaze:43102",
+   "poster": "/ct5pNE5dDHryHLDnxyZPYcqO1sz.jpg",
+   "tmdb": "tv/88329"
+  },
+  {
+   "id": "moon-knight",
+   "title": "Moon Knight",
+   "kind": "series",
+   "category": "main",
+   "setIn": "2025",
+   "release": "2022-03-30",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      48,
+      53,
+      53,
+      54,
+      50,
+      44
+     ]
+    }
+   ],
+   "source": "tvmaze:43518",
+   "poster": "/9K3lbMf8TKvL9xGEbzi7TggWCNQ.jpg",
+   "tmdb": "tv/92749"
+  },
+  {
+   "id": "wakanda-forever",
+   "title": "Black Panther: Wakanda Forever",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2025",
+   "release": "2022-11-09",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 162,
+   "poster": "/sv1xJUazXeYqALzczSZ3O6nkH75.jpg",
+   "tmdb": "movie/505642"
+  },
+  {
+   "id": "echo",
+   "title": "Echo",
+   "kind": "series",
+   "category": "main",
+   "setIn": "2025",
+   "release": "2024-01-09",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      51,
+      41,
+      44,
+      40,
+      37
+     ]
+    }
+   ],
+   "source": "tvmaze:58950",
+   "poster": "/vFyJH630cF68LohVYjQW49074Sy.jpg",
+   "tmdb": "tv/122226"
+  },
+  {
+   "id": "she-hulk",
+   "title": "She-Hulk: Attorney at Law",
+   "kind": "series",
+   "category": "main",
+   "setIn": "2025",
+   "release": "2022-08-18",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      38,
+      31,
+      35,
+      37,
+      31,
+      31,
+      35,
+      36,
+      35
+     ]
+    }
+   ],
+   "source": "tvmaze:43517",
+   "poster": "/5xz2orV8f0usyrfGNshcoXHmiaV.jpg",
+   "tmdb": "tv/92783"
+  },
+  {
+   "id": "ms-marvel",
+   "title": "Ms. Marvel",
+   "kind": "series",
+   "category": "main",
+   "setIn": "2025",
+   "release": "2022-06-08",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      50,
+      52,
+      48,
+      48,
+      41,
+      50
+     ]
+    }
+   ],
+   "source": "tvmaze:43519",
+   "poster": "/3HWWh92kZbD7odwJX7nKmXNZsYo.jpg",
+   "tmdb": "tv/92782"
+  },
+  {
+   "id": "love-and-thunder",
+   "title": "Thor: Love and Thunder",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2025",
+   "release": "2022-07-06",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 119,
+   "poster": "/pIkRyD18kl4FhoCNQuWxWu5cBLM.jpg",
+   "tmdb": "movie/616037"
+  },
+  {
+   "id": "werewolf-by-night",
+   "title": "Werewolf by Night",
+   "kind": "special",
+   "category": "main",
+   "setIn": "2025",
+   "release": "2022-09-25",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 55,
+   "poster": "/mvIvNKRIJPPS7WSFarFhOAGIVnU.jpg",
+   "tmdb": "movie/894205"
+  },
+  {
+   "id": "gotg-holiday",
+   "title": "The Guardians of the Galaxy Holiday Special",
+   "kind": "special",
+   "category": "main",
+   "setIn": "Christmas 2025",
+   "release": "2022-11-24",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 45,
+   "poster": "/8dqXyslZ2hv49Oiob9UjlGSHSTR.jpg",
+   "tmdb": "movie/774752"
+  },
+  {
+   "id": "quantumania",
+   "title": "Ant-Man and the Wasp: Quantumania",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2025",
+   "release": "2023-02-15",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 125,
+   "poster": "/qnqGbB22YJ7dSs4o6M7exTpNxPz.jpg",
+   "tmdb": "movie/640146"
+  },
+  {
+   "id": "gotg-3",
+   "title": "Guardians of the Galaxy Vol. 3",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2026",
+   "release": "2023-05-03",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 150,
+   "poster": "/r2J02Z2OpNTctfOSN1Ydgii51I3.jpg",
+   "tmdb": "movie/447365"
+  },
+  {
+   "id": "secret-invasion",
+   "title": "Secret Invasion",
+   "kind": "series",
+   "category": "main",
+   "setIn": "2026",
+   "release": "2023-06-21",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      55,
+      56,
+      42,
+      36,
+      37,
+      36
+     ]
+    }
+   ],
+   "source": "tvmaze:52352",
+   "poster": "/3rINdUPSy9AklJg74jWHOyUXuZd.jpg",
+   "tmdb": "tv/114472"
+  },
+  {
+   "id": "the-marvels",
+   "title": "The Marvels",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2026",
+   "release": "2023-11-08",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 105,
+   "poster": "/9GBhzXMFjgcZ3FdR9w3bUMMTps5.jpg",
+   "tmdb": "movie/609681"
+  },
+  {
+   "id": "loki-2",
+   "title": "Loki · Season 2",
+   "kind": "series",
+   "category": "main",
+   "setIn": "Outside time",
+   "release": "2023-10-05",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 2,
+     "episodes": [
+      48,
+      52,
+      56,
+      51,
+      47,
+      59
+     ]
+    }
+   ],
+   "source": "tvmaze:41007",
+   "poster": "/kEl2t3OhXc3Zb9FBh1AuYzRTgZp.jpg",
+   "tmdb": "tv/84958"
+  },
+  {
+   "id": "deadpool-wolverine",
+   "title": "Deadpool & Wolverine",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2024 (another universe) · TVA",
+   "release": "2024-07-24",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 128,
+   "poster": "/8cdWjvZQUExUUTzyp4t6EDMubfO.jpg",
+   "tmdb": "movie/533535"
+  },
+  {
+   "id": "agatha",
+   "title": "Agatha All Along",
+   "kind": "series",
+   "category": "main",
+   "setIn": "2026",
+   "release": "2024-09-18",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      42,
+      44,
+      39,
+      44,
+      32,
+      50,
+      37,
+      49,
+      42
+     ]
+    }
+   ],
+   "source": "tvmaze:58948",
+   "poster": "/mGsxKwXUjojitRv2E9qMTbxbBRd.jpg",
+   "tmdb": "tv/138501"
+  },
+  {
+   "id": "eyes-of-wakanda",
+   "title": "Eyes of Wakanda",
+   "kind": "series",
+   "category": "side",
+   "setIn": "Across history",
+   "release": "2025-08-01",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      32,
+      32,
+      31,
+      30
+     ]
+    }
+   ],
+   "source": "tvmaze:73415",
+   "note": "Stories from Wakanda's past; can be watched any time.",
+   "poster": "/yuOfb1MgnaGPa4guzV0n1IFYVGN.jpg",
+   "tmdb": "tv/241388"
+  },
+  {
+   "id": "ironheart",
+   "title": "Ironheart",
+   "kind": "series",
+   "category": "main",
+   "setIn": "2026",
+   "release": "2025-06-24",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      44,
+      50,
+      56,
+      53,
+      60,
+      42
+     ]
+    }
+   ],
+   "source": "tvmaze:47859",
+   "note": "Placement debated: set after Wakanda Forever.",
+   "poster": "/dOh6MJpdlQhYpLBhzhNQeYGKTZ5.jpg",
+   "tmdb": "tv/114471"
+  },
+  {
+   "id": "born-again-1",
+   "title": "Daredevil: Born Again · Season 1",
+   "kind": "series",
+   "category": "main",
+   "setIn": "2026",
+   "release": "2025-03-04",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      61,
+      50,
+      47,
+      55,
+      42,
+      45,
+      43,
+      52,
+      60
+     ]
+    }
+   ],
+   "source": "tvmaze:63234",
+   "poster": "/xDUoAsU8lQHOOoRkFiBuarmACDN.jpg",
+   "tmdb": "tv/202555"
+  },
+  {
+   "id": "brave-new-world",
+   "title": "Captain America: Brave New World",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2027",
+   "release": "2025-02-12",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 118,
+   "poster": "/pzIddUEMWhWzfvLI3TwxUG2wGoi.jpg",
+   "tmdb": "movie/822119"
+  },
+  {
+   "id": "thunderbolts",
+   "title": "Thunderbolts*",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2027",
+   "release": "2025-04-30",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 127,
+   "poster": "/hqcexYHbiTBfDIdDWxrxPtVndBX.jpg",
+   "tmdb": "movie/986056"
+  },
+  {
+   "id": "wonder-man",
+   "title": "Wonder Man",
+   "kind": "series",
+   "category": "main",
+   "setIn": "2027",
+   "release": "2026-01-27",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      35,
+      34,
+      34,
+      32,
+      26,
+      36,
+      35,
+      35
+     ]
+    }
+   ],
+   "source": "tvmaze:62569",
+   "note": "Placement debated: only loosely connected.",
+   "poster": "/6yy9nQlFt2l6UVWzrfhszFCaZ5C.jpg",
+   "tmdb": "tv/198178"
+  },
+  {
+   "id": "born-again-2",
+   "title": "Daredevil: Born Again · Season 2",
+   "kind": "series",
+   "category": "main",
+   "setIn": "2027",
+   "release": "2026-03-24",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 2,
+     "episodes": [
+      53,
+      49,
+      50,
+      54,
+      53,
+      52,
+      48,
+      54
+     ]
+    }
+   ],
+   "source": "tvmaze:63234",
+   "poster": "/xDUoAsU8lQHOOoRkFiBuarmACDN.jpg",
+   "tmdb": "tv/202555"
+  },
+  {
+   "id": "punisher-special",
+   "title": "The Punisher: One Last Kill",
+   "kind": "special",
+   "category": "main",
+   "setIn": "2027",
+   "release": "2026-05-12",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 51,
+   "note": "Bridges Born Again S2 and Brand New Day.",
+   "poster": "/qQclTgLMDvGBuUBFGHRipxkEwWR.jpg",
+   "tmdb": "movie/1439930"
+  },
+  {
+   "id": "brand-new-day",
+   "title": "Spider-Man: Brand New Day",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "2028",
+   "release": "2026-07-31",
+   "where": [],
+   "runtime": 145,
+   "note": "Not streaming in Slovakia yet.",
+   "poster": "/bjiS5ipwxb9JFy3XRRN4OAilSeX.jpg",
+   "tmdb": "movie/969681"
+  },
+  {
+   "id": "visionquest",
+   "title": "VisionQuest",
+   "kind": "series",
+   "category": "main",
+   "setIn": "2028",
+   "release": "2026-10-13",
+   "where": [
+    "Disney+"
+   ],
+   "seasons": [
+    {
+     "season": 1,
+     "episodes": [
+      56,
+      48,
+      {
+       "min": 49,
+       "airs": "2026-10-20"
+      },
+      {
+       "min": 49,
+       "airs": "2026-10-20"
+      },
+      {
+       "min": 49,
+       "airs": "2026-10-27"
+      },
+      {
+       "min": 49,
+       "airs": "2026-10-27"
+      },
+      {
+       "min": 49,
+       "airs": "2026-11-03"
+      },
+      {
+       "min": 49,
+       "airs": "2026-11-10"
+      }
+     ]
+    }
+   ],
+   "source": "tvmaze:64950",
+   "note": "Airing now, new episode weekly until 10 Nov 2026. Placement not confirmed.",
+   "poster": "/WGyAyBPncfuu8MZhLY9RtfZPM0.jpg",
+   "tmdb": "tv/213375"
+  },
+  {
+   "id": "fantastic-four",
+   "title": "The Fantastic Four: First Steps",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "Another universe (Earth-828)",
+   "release": "2025-07-23",
+   "where": [
+    "Disney+"
+   ],
+   "runtime": 115,
+   "note": "Set in a parallel universe; watch right before Doomsday.",
+   "poster": "/nf5qaSEvyYSNeFH0YhSs5EsBLX9.jpg",
+   "tmdb": "movie/617126"
+  },
+  {
+   "id": "doomsday",
+   "title": "Avengers: Doomsday",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "TBA",
+   "release": "2026-12-18",
+   "where": [],
+   "runtime": null,
+   "poster": "/sLYCyO58UvBuBtbHTQjPCCgJ4dG.jpg",
+   "tmdb": "movie/1003596"
+  },
+  {
+   "id": "born-again-3",
+   "title": "Daredevil: Born Again · Season 3",
+   "kind": "series",
+   "category": "main",
+   "setIn": "TBA",
+   "release": "2027-03-01",
+   "where": [],
+   "seasons": [],
+   "note": "Expected March 2027, no exact date yet.",
+   "poster": "/xDUoAsU8lQHOOoRkFiBuarmACDN.jpg",
+   "tmdb": "tv/202555"
+  },
+  {
+   "id": "secret-wars",
+   "title": "Avengers: Secret Wars",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "TBA",
+   "release": "2027-12-17",
+   "where": [],
+   "runtime": null,
+   "poster": "/f0YBuh4hyiAheXhh4JnJWoKi9g5.jpg",
+   "tmdb": "movie/1003598"
+  },
+  {
+   "id": "x-men",
+   "title": "X-Men",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "TBA",
+   "release": "2028-05-05",
+   "where": [],
+   "runtime": null,
+   "note": "Reported date; may move.",
+   "poster": "/jSn3jOzI91dOx4aVdfMrirWXH6R.jpg",
+   "tmdb": "movie/1293690"
+  },
+  {
+   "id": "black-panther-3",
+   "title": "Black Panther 3",
+   "kind": "movie",
+   "category": "main",
+   "setIn": "TBA",
+   "release": "2028-12-15",
+   "where": [],
+   "runtime": null,
+   "note": "Reported date; may move.",
+   "poster": "/zJc9fYZxgq4yzI0Oru2e1Cf3a3V.jpg",
+   "tmdb": "movie/1386618"
+  }
+ ]
+}

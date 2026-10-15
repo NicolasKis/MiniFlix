@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "sacred-timeline",
+      "runtimeExecutable": "server/bin/pocketbase.exe",
+      "runtimeArgs": ["serve", "--http=127.0.0.1:8090", "--dir=server/pb_data", "--migrationsDir=server/pb_migrations", "--publicDir=web/dist"],
+      "port": 8090
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+import raw from '../../data/titles.json'
+
+export type Episode = number | { min: number; airs: string | null }
+export type Title = {
+  id: string
+  title: string
+  kind: 'movie' | 'series' | 'special'
+  category: 'main' | 'debated' | 'side'
+  setIn: string
+  release: string | null
+  where: string[]
+  runtime?: number | null
+  seasons?: { season: number; episodes: Episode[] }[]
+  note?: string
+  poster?: string | null
+}
+export type Progress = {
+  watched: Record<string, string>
+  included: Record<string, boolean>
+  minimised: Record<string, boolean>
+  started: string | null
+}
+export type Ep = { key: string; season: number; number: number; min: number; airs: string | null; aired: boolean }
+
+export const titles = raw.titles as Title[]
+
+// Eras start at these titles; order comes from the locked list.
+export const ERAS: { start: string; name: string; years: string }[] = [
+  { start: 'first-avenger', name: 'Origins', years: '1943 to 1995' },
+  { start: 'iron-man', name: 'The Infinity Saga', years: '2008 to 2023' },
+  { start: 'loki-1', name: 'The Multiverse Saga', years: '2023 onward' },
+  { start: 'doomsday', name: 'Doomsday and beyond', years: 'Counted once they are out' },
+]
+
+export const today = () => new Date().toLocaleDateString('sv-SE') // YYYY-MM-DD in local time
+
+export const released = (t: Title) => !!t.release && t.release <= today()
+
+export const episodes = (t: Title): Ep[] =>
+  (t.seasons ?? []).flatMap(s =>
+    s.episodes.map((e, i) => {
+      const min = typeof e === 'number' ? e : e.min
+      const airs = typeof e === 'number' ? null : e.airs
+      return { key: `${t.id}:${s.season}:${i + 1}`, season: s.season, number: i + 1, min, airs, aired: !airs || airs <= today() }
+    }),
+  )
+
+export const totalMins = (t: Title) =>
+  t.kind === 'series' ? episodes(t).filter(e => e.aired).reduce((a, e) => a + e.min, 0) : (t.runtime ?? 0)
+
+export const watchedMins = (t: Title, p: Progress) =>
+  t.kind === 'series'
+    ? episodes(t).filter(e => e.aired && p.watched[e.key]).reduce((a, e) => a + e.min, 0)
+    : p.watched[t.id] ? (t.runtime ?? 0) : 0
+
+export const isDone = (t: Title, p: Progress) => {
+  if (t.kind !== 'series') return !!p.watched[t.id]
+  const aired = episodes(t).filter(e => e.aired)
+  return aired.length > 0 && aired.every(e => p.watched[e.key])
+}
+
+export const isExtra = (t: Title) => t.category !== 'main'
+export const counts = (t: Title, p: Progress) => released(t) && (!isExtra(t) || !!p.included[t.id])
+
+export const poster = (t: Title, size: 'w154' | 'w342') => (t.poster ? `https://image.tmdb.org/t/p/${size}${t.poster}` : '')
+
+export const duration = (m: number) => {
+  const h = Math.floor(m / 60)
+  return [h ? `${h} h` : '', m % 60 ? `${m % 60} min` : ''].filter(Boolean).join(' ') || '0 min'
+}
+
+export const fmtDate = (iso: string) =>
+  new Date(`${iso}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+
+export const daysUntil = (iso: string) =>
+  Math.round((new Date(`${iso}T00:00:00`).getTime() - new Date(`${today()}T00:00:00`).getTime()) / 86400000)
+
+// "4 months and 12 days" between two YYYY-MM-DD dates.
+export const span = (from: string, to: string) => {
+  const a = new Date(`${from}T00:00:00`), b = new Date(`${to}T00:00:00`)
+  let months = (b.getFullYear() - a.getFullYear()) * 12 + b.getMonth() - a.getMonth()
+  if (b.getDate() < a.getDate()) months--
+  const anchor = new Date(a.getFullYear(), a.getMonth() + months, a.getDate())
+  const days = Math.round((b.getTime() - anchor.getTime()) / 86400000)
+  const parts = []
+  if (months) parts.push(`${months} ${months === 1 ? 'month' : 'months'}`)
+  if (days || !months) parts.push(`${days} ${days === 1 ? 'day' : 'days'}`)
+  return parts.join(' and ')
+}
+
+// The year shown in the left column, taken from "1943–1945", "Christmas 2024", "Outside time"...
+export const yearOf = (t: Title) => t.setIn.match(/\d{4}/)?.[0] ?? (t.setIn === 'Outside time' ? 'TVA' : '')
