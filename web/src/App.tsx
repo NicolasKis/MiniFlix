@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ERAS, counts, daysUntil, duration, episodes, fmtDate, isDone, isExtra, poster, released, span, titles, today,
   totalMins, watchedMins, yearOf, type Progress, type Title,
@@ -68,11 +68,15 @@ export default function App() {
   return (
     <div className="min-h-dvh">
       {offline && (
-        <div role="status" className="bg-btn px-5 py-3 text-center text-[15px] font-semibold text-white">
+        <div role="status" className="bg-btn px-5 pb-3 text-center text-[15px] font-semibold text-white" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 12px)' }}>
           Can't reach the server. Your last change may not be saved.
         </div>
       )}
-      <div className="mx-auto flex max-w-[1120px] flex-col gap-10 px-5 pb-20 pt-5 [padding-top:max(20px,env(safe-area-inset-top))]">
+      {/* The safe-area insets keep content clear of the iPhone camera cutout and home bar. */}
+      <div
+        className="mx-auto flex max-w-[1120px] flex-col gap-10 px-5"
+        style={{ paddingTop: offline ? 20 : 'calc(env(safe-area-inset-top) + 20px)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}
+      >
         <header className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Logo />
@@ -304,7 +308,31 @@ export default function App() {
           Posters and episode data from TMDB. This app uses the TMDB API but is not endorsed or certified by TMDB.
         </footer>
       </div>
+      <BackToTop />
     </div>
+  )
+}
+
+// Appears once you are well down the list.
+function BackToTop() {
+  const [show, setShow] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setShow(window.scrollY > 800)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+  if (!show) return null
+  return (
+    <button
+      type="button"
+      aria-label="Back to top"
+      onClick={() => window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })}
+      className="fixed right-5 grid size-12 place-items-center rounded-full border-0 bg-ink text-bg shadow-[0_6px_20px_rgba(0,0,0,0.5)] active:scale-95"
+      style={{ bottom: 'calc(env(safe-area-inset-bottom) + 20px)' }}
+    >
+      <Chevron down={false} />
+    </button>
   )
 }
 
