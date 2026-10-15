@@ -45,6 +45,7 @@ export default function Tva({ tva, anim, entering, hidden, onShow, onReset }: Pr
   const [leaving, setLeaving] = useState<string[]>([])
   const [listOpen, setListOpen] = useState(false)
   const [animOpen, setAnimOpen] = useState(false)
+  const [hiddenOpen, setHiddenOpen] = useState(false)
   const [confirm, setConfirm] = useState<'backup' | 'reset' | null>(null)
   const [wasReset, setWasReset] = useState(false)
   const [fresh, setFresh] = useState<string[]>([])
@@ -147,8 +148,17 @@ export default function Tva({ tva, anim, entering, hidden, onShow, onReset }: Pr
           <span className="text-muted">Nothing hidden. Every title is on your timeline.</span>
         ) : (
           <div className="flex flex-col rounded-xl bg-surface px-4 py-1">
-            {hidden.map((t, i) => (
-              <div key={t.id} className={`flex items-center gap-3.5 py-3 ${i ? 'border-t border-[#2C2F36]' : ''}`}>
+            <button
+              type="button"
+              onClick={() => setHiddenOpen(!hiddenOpen)}
+              aria-expanded={hiddenOpen}
+              className="flex min-h-14 items-center justify-between gap-3 border-0 bg-transparent p-0 text-left text-[17px] font-bold text-ink"
+            >
+              {hidden.length} hidden {hidden.length === 1 ? 'title' : 'titles'}
+              <Chev open={hiddenOpen} />
+            </button>
+            {hiddenOpen && hidden.map(t => (
+              <div key={t.id} className="flex items-center gap-3.5 border-t border-[#2C2F36] py-3">
                 <img src={poster(t, 'w154')} alt="" width={40} height={60} className="h-[60px] w-10 shrink-0 rounded-[3px] bg-track object-cover opacity-60 grayscale" />
                 <span className="flex min-w-0 flex-auto flex-col gap-0.5">
                   <span className="text-[17px] font-semibold leading-tight text-muted">{t.title}</span>

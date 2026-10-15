@@ -2,12 +2,13 @@ import { Fragment, useEffect, useRef, useState, type CSSProperties, type MouseEv
 import { useAnim } from './anim'
 import {
   ERAS, counts, creditsText, daysUntil, duration, episodes, fmtDate, isDone, isExtra, poster, released, sagaMap, shown, span, titles, today,
-  QUALITY_STYLE, totalMins, totals, watchCount, yearOf, type Progress, type Title,
+  QUALITY_STYLE, totalMins, totals, watchCount, yearOf, type Ep, type Progress, type Title,
 } from './data'
 import Details from './Details'
 import History from './History'
 import { Check, Chevron, CreditsIcon, Logo, Service } from './icons'
 import Loading from './Loading'
+import Nexus from './Nexus'
 import { useProgress, useTva, type JellyfinItem, type Net } from './store'
 import Tva from './Tva'
 import Wrapped from './Wrapped'
@@ -52,6 +53,18 @@ export default function App() {
   const [plan, setPlan] = useState<number | null>(null)
   const [recapClosed, setRecapClosed] = useState(false)
   const [showWrapped, setShowWrapped] = useState(false)
+  const [nexus, setNexus] = useState<{ n: number; audio: AudioContext | null } | null>(null)
+  const taps = useRef<number[]>([])
+  // Five quick taps on the logo. The sound has to start inside the tap, so the audio is created here.
+  const tapLogo = (e: MouseEvent<HTMLButtonElement>) => {
+    const now = e.timeStamp
+    taps.current = [...taps.current.filter(t => now - t < 1600), now]
+    if (taps.current.length < 5 || nexus) return
+    taps.current = []
+    let audio: AudioContext | null = null
+    try { audio = new AudioContext() } catch { /* no sound on this device */ }
+    setNexus({ n: now, audio })
+  }
   // The logo builds itself while the app opens (it has its own animation switch).
   const [loading, setLoading] = useState(() => anim.on('loading'))
 
@@ -219,21 +232,34 @@ export default function App() {
       }
     : null
 
-  // Tonight planner: what fits, in timeline order, into the time you have.
-  const minsLeft = (t: Title) => (t.kind === 'series' ? episodes(t).filter(e => e.aired && !p.watched[e.key]).reduce((a, e) => a + e.min, 0) : totalMins(t))
+  // Tonight planner: what fits, in timeline order, into the time you have. Shows count episode by episode
+  // (each with its own TMDB runtime), so a long series still gives you the next few episodes.
   let planText = ''
   if (plan && next) {
     let used = 0
     const picks: string[] = []
+    let blocked = ''
     for (const t of counted.filter(x => !isDone(x, p))) {
-      if (used + minsLeft(t) > plan) break
-      used += minsLeft(t)
-      picks.push(t.title)
+      if (t.kind !== 'series') {
+        if (used + totalMins(t) > plan) { blocked = `${t.title} needs ${duration(totalMins(t))}`; break }
+        used += totalMins(t)
+        picks.push(t.title)
+        continue
+      }
+      const fits: Ep[] = []
+      const left = episodes(t).filter(e => e.aired && !p.watched[e.key])
+      for (const e of left) {
+        if (used + e.min > plan) break
+        used += e.min
+        fits.push(e)
+      }
+      if (fits.length) picks.push(`${t.title} ${epRange(fits)} (${fits.length} ${fits.length === 1 ? 'episode' : 'episodes'})`)
+      if (fits.length < left.length) { blocked = `the next episode of ${t.title} needs ${duration(left[fits.length].min)}`; break }
     }
     const names = picks.length < 2 ? picks.join('') : `${picks.slice(0, -1).join(', ')} and ${picks[picks.length - 1]}`
     planText = !picks.length
-      ? `Nothing fits fully tonight: ${next.title} needs ${duration(minsLeft(next))}.`
-      : `That fits ${names} (${duration(used)})${plan - used >= 5 ? `, with ${duration(plan - used)} to spare.` : '.'}`
+      ? `Nothing fits fully tonight: ${blocked}.`
+      : `That fits ${names}, ${duration(used)} in all${plan - used >= 5 ? `, with ${duration(plan - used)} to spare.` : '.'}`
   }
   const detailTitle = detail ? titles.find(t => t.id === detail.id) : undefined
   // The details card grows out of whatever you tapped, so remember where that was.
@@ -276,7 +302,9 @@ export default function App() {
       >
         <header className="relative z-20 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
           <div className="flex items-center gap-3">
-            <Logo />
+            <button type="button" onClick={tapLogo} aria-label="Sacred Timeline logo" className="cursor-default touch-manipulation border-0 bg-transparent p-0">
+              <Logo />
+            </button>
             <h1 className="m-0 font-display text-[28px] font-extrabold uppercase leading-[0.9] tracking-[-0.01em]">
               Sacred<br />Timeline
             </h1>
@@ -831,6 +859,16 @@ export default function App() {
         />
       )}
       {showWrapped && <Wrapped p={p} onClose={() => setShowWrapped(false)} />}
+      {nexus && (
+        <Nexus
+          key={nexus.n}
+          audio={nexus.audio}
+          onDone={() => {
+            nexus.audio?.close().catch(() => {})
+            setNexus(null)
+          }}
+        />
+      )}
       {splash}
       <BackToTop raised={!!toast} />
       {toast && (
@@ -853,6 +891,13 @@ export default function App() {
       )}
     </div>
   )
+}
+
+// "S1 E1–E3", or "S1 E8 to S2 E2" across seasons.
+const epRange = (eps: Ep[]) => {
+  const a = eps[0], b = eps[eps.length - 1]
+  if (a === b) return `S${a.season} E${a.number}`
+  return a.season === b.season ? `S${a.season} E${a.number}–E${b.number}` : `S${a.season} E${a.number} to S${b.season} E${b.number}`
 }
 
 // An on/off preference kept in this browser only.
