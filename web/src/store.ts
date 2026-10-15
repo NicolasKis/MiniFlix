@@ -7,7 +7,7 @@ const progress = pb.collection('progress')
 const ID = 'progressstate01'
 const CACHE = 'st-cache'
 
-const parse = (data: unknown): Progress => ({ watched: {}, included: {}, minimised: {}, started: null, log: [], ...(data as Partial<Progress>) })
+const parse = (data: unknown): Progress => ({ watched: {}, included: {}, minimised: {}, started: null, log: [], hidden: {}, ...(data as Partial<Progress>) })
 
 // A copy of everything on this device, so the app opens and ticks work without a connection.
 type Cache = { progress?: Progress; pending?: number; tva?: Tva; titles?: Title[] }
@@ -23,7 +23,8 @@ export type Net = { offline: boolean; pending: number; sync: 'syncing' | 'synced
 // Loads the shared progress record and keeps it live: a tick on one device shows up on the others.
 // Offline, changes stay on the device (counted in `pending`) and are sent once the server answers again.
 export function useProgress() {
-  const [p, setP] = useState<Progress | null>(() => readCache().progress ?? null)
+  // parse() also fills fields added since the device cached its copy (like `hidden`).
+  const [p, setP] = useState<Progress | null>(() => { const c = readCache().progress; return c ? parse(c) : null })
   const [net, setNet] = useState<Net>(() => ({ offline: false, pending: readCache().pending ?? 0, sync: null }))
   const netRef = useRef(net)
   useEffect(() => { netRef.current = net })
@@ -136,7 +137,7 @@ export function useTva() {
 }
 
 // Runs a TVA task on the server; resolves with an error message, or null when it worked.
-export const runTask = (task: 'jellyfin' | 'backup' | 'variance' | 'variance/resolve', body?: object) =>
+export const runTask = (task: 'jellyfin' | 'backup' | 'variance' | 'variance/resolve' | 'push/subscribe' | 'push/unsubscribe' | 'push/test', body?: object) =>
   pb.send(`/api/st/${task}`, { method: 'POST', body })
     .then(() => null)
     .catch((err: { response?: { error?: string } }) => err.response?.error ?? "Couldn't reach the server.")

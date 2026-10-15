@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { countLabel, duration, fmtDate, isDone, poster, released, totalMins, watchCount, type Progress, type Title } from './data'
+import { CreditsIcon } from './icons'
+import { countLabel, creditsText, duration, fmtDate, isDone, poster, released, totalMins, watchCount, type Progress, type Title } from './data'
 
 const KIND = { movie: 'Film', series: 'Series', special: 'Special' } as const
 const EXTRA = { debated: 'Debated canon', side: 'Side story', main: '' } as const
@@ -13,12 +14,17 @@ type Props = {
   onClose: () => void
   onToggle: () => void
   onRewatch: () => void
+  // Spoiler-free blurs the plot of anything not watched yet until you tap it.
+  spoiler: boolean
+  hidden: boolean
+  onHide: () => void
 }
 
 // The card that opens when you tap a poster or title.
-export default function Details({ t, p, services, from, onClose, onToggle, onRewatch }: Props) {
+export default function Details({ t, p, services, from, onClose, onToggle, onRewatch, spoiler, hidden, onHide }: Props) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const [closing, setClosing] = useState(false)
+  const [revealed, setRevealed] = useState(false)
   const out = released(t)
   const done = out && isDone(t, p)
   // With the zoom on, the card shrinks back into the poster before it goes.
@@ -80,7 +86,22 @@ export default function Details({ t, p, services, from, onClose, onToggle, onRew
             <span className="text-muted">{meta}</span>
             {out && services}
           </div>
-          {t.overview && <p className="m-0 leading-relaxed">{t.overview}</p>}
+          {t.overview && (spoiler && !done && !revealed ? (
+            <div className="relative overflow-hidden rounded-[10px]">
+              <p aria-hidden="true" className="m-0 select-none leading-relaxed blur-[7px]">{t.overview}</p>
+              <div className="absolute inset-0 grid place-items-center bg-[rgba(24,26,31,0.35)]">
+                <button type="button" onClick={() => setRevealed(true)} className="h-11 rounded-full border-2 border-ink bg-surface px-[18px] text-[15px] font-bold text-ink">
+                  Spoiler-free: tap to show the plot
+                </button>
+              </div>
+            </div>
+          ) : <p className="m-0 leading-relaxed">{t.overview}</p>)}
+          {t.credits && (t.credits.mid || t.credits.end) && (
+            <span className="inline-flex items-center gap-2 font-semibold text-gold">
+              <CreditsIcon size={16} />
+              {creditsText(t.credits, true)}
+            </span>
+          )}
           {t.note && <p className="m-0 text-muted">{t.note}</p>}
           {out && <span className="font-bold text-gold">{countLabel(watchCount(t, p))}</span>}
           {out && (
@@ -98,6 +119,16 @@ export default function Details({ t, p, services, from, onClose, onToggle, onRew
               </button>
             </div>
           )}
+          <div className="mt-1 flex flex-col gap-1 border-t border-[#2C2F36] pt-3">
+            <button type="button" onClick={onHide} className="inline-flex h-11 items-center gap-2.5 self-start border-0 bg-transparent px-1 text-base font-bold text-muted">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                {hidden ? <><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z" /><circle cx="12" cy="12" r="2.5" /></>
+                  : <><path d="M3 12s3.5-6 9-6c1.6 0 3 .5 4.2 1.2M21 12s-3.5 6-9 6c-1.6 0-3-.5-4.2-1.2" /><path d="M9.9 14.1a3 3 0 0 1 4.2-4.2" /><path d="M4 20L20 4" /></>}
+              </svg>
+              {hidden ? 'Show on timeline again' : 'Hide from timeline'}
+            </button>
+            {!hidden && <span className="text-sm text-muted">It won't show or count anywhere. Turn it back on in TVA, under Hidden titles.</span>}
+          </div>
         </div>
       </div>
     </div>

@@ -5,6 +5,16 @@ const CACHE = 'st-v1'
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()))
 
+// Notifications from the server (new releases, variance report, backup reminder, test).
+self.addEventListener('push', e => {
+  const d = e.data ? e.data.json() : {}
+  e.waitUntil(self.registration.showNotification(d.title || 'Sacred Timeline', { body: d.body || '', icon: '/icon-512.png' }))
+})
+self.addEventListener('notificationclick', e => {
+  e.notification.close()
+  e.waitUntil(self.clients.matchAll({ type: 'window' }).then(list => (list[0] ? list[0].focus() : self.clients.openWindow('/'))))
+})
+
 self.addEventListener('fetch', e => {
   const req = e.request
   if (req.method !== 'GET') return

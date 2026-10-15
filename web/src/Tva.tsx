@@ -1,13 +1,17 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { ANIM_GROUPS, type AnimKey, type AnimPrefs } from './anim'
-import { QUALITY_STYLE, fmtDate, titles, today } from './data'
+import { QUALITY_STYLE, fmtDate, poster, titles, today, type Title } from './data'
+import { NOTIF_KINDS, pushSupported, usePush } from './push'
 import { runTask, type Tva as TvaData } from './store'
 
+const KIND = { movie: 'Film', series: 'Series', special: 'Special' } as const
 
 type Props = {
   tva: TvaData
   anim: { prefs: Partial<AnimPrefs>; on: (k: AnimKey) => boolean; set: (k: AnimKey | 'all', v: boolean) => void }
   entering: boolean
+  hidden: Title[]
+  onShow: (t: Title) => void
   onReset: () => void
 }
 
@@ -28,7 +32,14 @@ const VARIANCE = {
 const stamp = (on: boolean, delay: number): CSSProperties | undefined =>
   on ? { animation: `st-stamp 440ms cubic-bezier(.2,.8,.2,1) ${delay}ms both` } : undefined
 
-export default function Tva({ tva, anim, entering, onReset }: Props) {
+export default function Tva({ tva, anim, entering, hidden, onShow, onReset }: Props) {
+  const push = usePush()
+  const [pushMsg, setPushMsg] = useState('')
+  const pushDo = async (task: () => Promise<string | null>, ok = '') => {
+    setPushMsg('')
+    const error = await task().catch(() => "Couldn't set up notifications on this device.")
+    setPushMsg(error ?? ok)
+  }
   const [busy, setBusy] = useState<'jellyfin' | 'backup' | 'variance' | null>(null)
   const [message, setMessage] = useState<{ task: 'jellyfin' | 'backup' | 'variance'; text: string } | null>(null)
   const [leaving, setLeaving] = useState<string[]>([])
@@ -127,6 +138,41 @@ export default function Tva({ tva, anim, entering, onReset }: Props) {
         )}
       </section>
 
+      <section aria-labelledby="st-hd" className="flex flex-col gap-4" style={stamp(door, 270)}>
+        <Heading id="st-hd" tile="bg-branch" icon={<><path d="M5 12s2.6-4.5 7-4.5S19 12 19 12s-2.6 4.5-7 4.5S5 12 5 12z" fill="none" stroke="#0E0F12" strokeWidth="2" /><circle cx="12" cy="12" r="2" fill="#0E0F12" /><path d="M6 18L18 6" stroke="#0E0F12" strokeWidth="2.2" strokeLinecap="round" /></>}>
+          Hidden titles
+        </Heading>
+        <p className="m-0 max-w-[62ch]">Films and shows you took off the timeline. They don't show or count anywhere; your ticks on them are kept. Hide one from its details card.</p>
+        {hidden.length === 0 ? (
+          <span className="text-muted">Nothing hidden. Every title is on your timeline.</span>
+        ) : (
+          <div className="flex flex-col rounded-xl bg-surface px-4 py-1">
+            {hidden.map((t, i) => (
+              <div key={t.id} className={`flex items-center gap-3.5 py-3 ${i ? 'border-t border-[#2C2F36]' : ''}`}>
+                <img src={poster(t, 'w154')} alt="" width={40} height={60} className="h-[60px] w-10 shrink-0 rounded-[3px] bg-track object-cover opacity-60 grayscale" />
+                <span className="flex min-w-0 flex-auto flex-col gap-0.5">
+                  <span className="text-[17px] font-semibold leading-tight text-muted">{t.title}</span>
+                  <span className="text-sm text-muted">{[KIND[t.kind], t.release?.slice(0, 4)].filter(Boolean).join(' · ')}</span>
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked="false"
+                  aria-label={`Show ${t.title} on the timeline again`}
+                  onClick={() => onShow(t)}
+                  className="flex h-11 shrink-0 items-center gap-2.5 border-0 bg-transparent px-0.5 text-[15px] font-bold text-ink"
+                >
+                  Show
+                  <span className="relative inline-block h-[26px] w-[46px] rounded-full bg-line">
+                    <span className="absolute left-[3px] top-[3px] size-5 rounded-full bg-muted" />
+                  </span>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       <section aria-labelledby="st-jf" className="flex flex-col gap-4" style={stamp(door, 290)}>
         <Heading id="st-jf" tile="bg-[#A58BF0]" icon={<path d="M12 5.2 L18.6 17.4 Q19 18.2 18.1 18.2 H5.9 Q5 18.2 5.4 17.4 Z M12 11 L9.4 15.6 H14.6 Z" fill="#1E1438" fillRule="evenodd" />}>
           Jellyfin library
@@ -200,6 +246,39 @@ export default function Tva({ tva, anim, entering, onReset }: Props) {
               ) : 'No backups yet.'}
           </span>
         </div>
+      </section>
+
+      <section aria-labelledby="st-nt" className="flex flex-col gap-4" style={stamp(door, 400)}>
+        <Heading id="st-nt" tile="bg-[#4FC3F7]" icon={<><path d="M8 16.5h8l-1.2-1.6V11a2.8 2.8 0 0 0-5.6 0v3.9z" fill="#06213A" /><circle cx="12" cy="18.3" r="1.3" fill="#06213A" /></>}>
+          Notifications
+        </Heading>
+        <p className="m-0 max-w-[62ch]">Works on your iPhone when Sacred Timeline is on the Home Screen. Each device is switched on separately.</p>
+        {!pushSupported() ? (
+          <span className="text-muted">This browser can't show notifications. On iPhone, open Sacred Timeline from its Home Screen icon.</span>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+              <button
+                type="button"
+                onClick={() => pushDo(push.on ? push.disable : push.enable)}
+                className={`h-12 rounded-full border-2 px-[22px] text-base font-bold ${push.on ? 'border-line bg-transparent text-[#7BE08F]' : 'border-[#4FC3F7] bg-[#4FC3F7] text-[#06213A]'}`}
+              >
+                {push.on ? 'On for this device · turn off' : 'Turn on notifications'}
+              </button>
+              {push.on && (
+                <button type="button" onClick={() => pushDo(push.test, 'Test sent. It should arrive in a few seconds.')} className="h-12 rounded-full border-2 border-line bg-transparent px-5 text-base font-bold text-ink">
+                  Send a test
+                </button>
+              )}
+              {pushMsg && <span role="status" className="text-muted">{pushMsg}</span>}
+            </div>
+            <div className="flex flex-col rounded-xl bg-surface px-5 py-1">
+              {NOTIF_KINDS.map(([key, label, hint]) => (
+                <Switch key={key} label={label} hint={hint} dim={!push.on} on={push.kinds[key]} onChange={v => pushDo(() => push.setKind(key, v))} />
+              ))}
+            </div>
+          </>
+        )}
       </section>
 
       <section aria-labelledby="st-an" className="flex flex-col gap-4" style={stamp(door, 430)}>

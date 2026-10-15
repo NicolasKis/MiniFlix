@@ -38,8 +38,10 @@ function check(app) {
   const found = []
   const add = (v) => { if (!known[v.key]) { known[v.key] = true; found.push(v) } }
 
+  // Titles you hid don't get reported.
+  const hidden = JSON.parse(app.findRecordById("progress", "progressstate01").getString("data") || "{}").hidden || {}
   catalog.titles.forEach((t) => {
-    if (!t.tmdb) return
+    if (!t.tmdb || hidden[t.id]) return
     const released = t.release && t.release <= today
 
     // New episodes: only shows from the last year or so, older ones don't change.
@@ -98,13 +100,18 @@ function check(app) {
     .forEach((s) => fresh.push({ tmdb: "tv/" + s.id, title: s.name, release: s.first_air_date || null, kind: "series", poster: s.poster_path, overview: s.overview }))
   fresh.forEach((n) => {
     if (ids[n.tmdb] || /podcast/i.test(n.title)) return
+    // shortcut: credits scenes are read once, when a title is added; TMDB usually tags them after release
+    if (n.kind === "movie" && !known["title:" + n.tmdb]) {
+      const kw = (tmdb("/" + n.tmdb + "/keywords").keywords || []).map((k) => k.id)
+      if (kw.indexOf(179430) !== -1 || kw.indexOf(179431) !== -1) n.credits = { mid: kw.indexOf(179430) !== -1, end: kw.indexOf(179431) !== -1 }
+    }
     add({
       key: "title:" + n.tmdb, kind: "title", title: n.title,
       detail: "Newly announced" + (n.release ? ", out " + fmt(n.release) : "") + ". It would be added at the end of the timeline.",
       patch: { add: {
         id: slug(n.title) + "-" + n.tmdb.split("/")[1], title: n.title, kind: n.kind, category: "main", setIn: "TBA",
         release: n.release, where: [], runtime: null, seasons: n.kind === "series" ? [] : undefined,
-        poster: n.poster || null, tmdb: n.tmdb, overview: n.overview || undefined,
+        poster: n.poster || null, tmdb: n.tmdb, overview: n.overview || undefined, credits: n.credits,
       } },
     })
   })

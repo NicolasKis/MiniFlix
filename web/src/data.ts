@@ -15,6 +15,7 @@ export type Title = {
   poster?: string | null
   overview?: string
   tmdb?: string // "movie/1726" or "tv/84958"
+  credits?: { mid: boolean; end: boolean } // scenes during or after the credits, from TMDB keywords
 }
 export type Progress = {
   watched: Record<string, string>
@@ -23,6 +24,8 @@ export type Progress = {
   started: string | null
   // Rewatches outside the marathon; they never change the percentage.
   log: { id: string; date: string }[]
+  // Titles taken off the timeline: they show and count nowhere, but their ticks are kept.
+  hidden: Record<string, boolean>
 }
 export type Ep = { key: string; season: number; number: number; min: number; airs: string | null; aired: boolean }
 
@@ -37,6 +40,18 @@ export const ERAS: { start: string; name: string; years: string }[] = [
   { start: 'loki-1', name: 'The Multiverse Saga', years: '2023 onward' },
   { start: 'doomsday', name: 'Doomsday and beyond', years: 'Counted once they are out' },
 ]
+
+// Which saga each title belongs to, by position in the list (titles added later join the last saga).
+export const sagaMap = () => {
+  const map = new Map<string, number>()
+  let i = -1
+  for (const t of titles) {
+    const at = ERAS.findIndex(e => e.start === t.id)
+    if (at >= 0) i = at
+    map.set(t.id, i)
+  }
+  return map
+}
 
 export const today = () => new Date().toLocaleDateString('sv-SE') // YYYY-MM-DD in local time
 
@@ -78,16 +93,25 @@ export const watchCount = (t: Title, p: Progress) =>
 
 export const countLabel = (n: number) => (n === 0 ? 'Not watched yet' : n === 1 ? 'Watched once' : `Watched ${n}×`)
 
+// The timeline without the titles you hid.
+export const shown = (p: Progress) => titles.filter(t => !p.hidden[t.id])
+
 export const isExtra = (t: Title) => t.category !== 'main'
 export const counts = (t: Title, p: Progress) => released(t) && (!isExtra(t) || !!p.included[t.id])
 
 // Everything that counts toward 100%: main titles plus extras you added, released only.
 export const totals = (p: Progress) => {
-  const counted = titles.filter(t => counts(t, p))
+  const counted = shown(p).filter(t => counts(t, p))
   const total = counted.reduce((a, t) => a + totalMins(t), 0)
   const watched = counted.reduce((a, t) => a + watchedMins(t, p), 0)
   return { counted, total, watched, pct: total ? Math.floor((watched / total) * 1000) / 10 : 0 }
 }
+
+// "Mid + end credits" on the timeline, a full sentence in the details card.
+export const creditsText = (c: { mid: boolean; end: boolean }, long = false) =>
+  long
+    ? `Stay for the credits: ${[c.mid && 'a mid-credits scene', c.end && 'an end-credits scene'].filter(Boolean).join(' and ')}.`
+    : c.mid && c.end ? 'Mid + end credits' : c.mid ? 'Mid-credits scene' : 'End-credits scene'
 
 export const poster =(t: Title, size: 'w154' | 'w342') => (t.poster ? `https://image.tmdb.org/t/p/${size}${t.poster}` : '')
 

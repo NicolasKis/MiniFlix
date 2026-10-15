@@ -3,6 +3,7 @@ import { useState } from 'react'
 // Every animation has its own switch, grouped as on the TVA screen. Switches are per device.
 export const ANIM_GROUPS = [
   { name: 'Screens', items: [
+    ['loading', 'Loading screen', 'The logo builds itself when the app opens'],
     ['timeline', 'Timeline', 'Line draws in, titles slide up, percentage counts up'],
     ['history', 'History', 'Rewind slide-in and stamped top three'],
     ['tva', 'TVA', 'Time door, hourglass flip and stamped sections'],

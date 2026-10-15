@@ -1,22 +1,27 @@
 import { useState, type CSSProperties, type MouseEvent } from 'react'
-import { countLabel, fmtDate, poster, released, titles, watchCount, watchedOn, type Progress, type Title } from './data'
+import { countLabel, fmtDate, poster, released, shown, watchCount, watchedOn, type Progress, type Title } from './data'
+import { statTiles } from './stats'
 
-type Props = { p: Progress; onOpen: (t: Title, e?: MouseEvent<HTMLElement>) => void; onRewatch: (t: Title) => void; entering: boolean }
+type Props = { p: Progress; onOpen: (t: Title, e?: MouseEvent<HTMLElement>) => void; onRewatch: (t: Title) => void; entering: boolean; finished: boolean; onWrapped: () => void }
 
 const EASE = 'cubic-bezier(.2,.8,.2,1)'
 
 
 // Every watch, newest first: marathon ticks and rewatches together.
-export default function History({ p, onOpen, onRewatch, entering }: Props) {
+export default function History({ p, onOpen, onRewatch, entering, finished, onWrapped }: Props) {
   // Entrance: a quick rewind from the side, with the top three stamped in.
   const fromRight = (delay: number): CSSProperties | undefined => (entering ? { animation: `st-from-right 380ms ${EASE} ${delay}ms both` } : undefined)
   const stamp = (delay: number): CSSProperties | undefined => (entering ? { animation: `st-stamp 440ms ${EASE} ${delay}ms both` } : undefined)
   const [query, setQuery] = useState('')
   const q = query.trim().toLowerCase()
-  const byId = new Map(titles.map(t => [t.id, t]))
+  // Hidden titles stay out of History too.
+  const list = shown(p)
+  const byId = new Map(list.map(t => [t.id, t]))
+  const stats = statTiles(p)
+  const maxH = Math.max(1, ...stats.months.map(m => m.hours))
 
   const watches = [
-    ...titles.flatMap(t => {
+    ...list.flatMap(t => {
       const date = watchedOn(t, p)
       return date ? [{ t, date, rewatch: false }] : []
     }),
@@ -26,9 +31,9 @@ export default function History({ p, onOpen, onRewatch, entering }: Props) {
     }),
   ].sort((a, b) => b.date.localeCompare(a.date))
 
-  const seen = titles.filter(t => watchCount(t, p) > 0)
+  const seen = list.filter(t => watchCount(t, p) > 0)
   const top = [...seen].sort((a, b) => watchCount(b, p) - watchCount(a, p)).slice(0, 3)
-  const results = q ? titles.filter(t => t.title.toLowerCase().includes(q)) : []
+  const results = q ? list.filter(t => t.title.toLowerCase().includes(q)) : []
 
   return (
     <div className="flex flex-col gap-8">
@@ -102,6 +107,40 @@ export default function History({ p, onOpen, onRewatch, entering }: Props) {
               </div>
             </section>
           )}
+
+          <section aria-labelledby="st-stats" className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 id="st-stats" className="m-0 font-display text-4xl font-extrabold uppercase leading-none">Your stats</h2>
+              {finished && (
+                <button type="button" onClick={onWrapped} className="h-11 rounded-full border-2 border-red bg-transparent px-[18px] text-[15px] font-bold text-[#F07B7B]">
+                  See your Wrapped
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3">
+              {stats.tiles.map(([value, label], i) => (
+                <div key={label} className="flex flex-col gap-1.5 rounded-xl bg-surface px-[18px] py-4" style={stamp(80 + i * 60)}>
+                  <span className="font-display text-[34px] font-extrabold leading-[0.95] sm:text-[44px]">{value}</span>
+                  <span className="text-[15px] text-muted">{label}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-col gap-2.5 rounded-xl bg-surface px-[18px] py-4">
+              <span className="text-[15px] font-bold text-muted">Hours watched per month</span>
+              <div role="img" aria-label={`Hours watched per month: ${stats.months.map(m => `${m.label} ${m.hours}`).join(', ')}`} className="flex h-[120px] items-end gap-2.5">
+                {stats.months.map((m, i) => (
+                  <div key={m.label} className="flex h-full flex-1 flex-col items-center justify-end gap-1.5">
+                    <span className="text-[13px] font-bold">{m.hours} h</span>
+                    <div
+                      className={`w-full max-w-11 rounded-t ${i === stats.months.length - 1 ? 'bg-gold' : 'bg-red'}`}
+                      style={{ height: Math.max(4, Math.round((m.hours / maxH) * 80)), ...(entering ? { transformOrigin: 'bottom', animation: `st-draw-down 420ms ${EASE} ${150 + i * 60}ms both` } : {}) }}
+                    />
+                    <span className="text-[13px] text-muted">{m.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
 
           <section aria-labelledby="st-recent" className="flex flex-col gap-1">
             <h2 id="st-recent" className="m-0 mb-3 font-display text-4xl font-extrabold uppercase leading-none">Recent watches</h2>

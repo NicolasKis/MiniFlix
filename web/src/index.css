@@ -65,6 +65,21 @@ button {
 @keyframes st-check-draw { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
 @keyframes st-zoom { from { opacity: .3; transform: translate(var(--dx), var(--dy)) scale(.12); } to { opacity: 1; transform: none; } }
 @keyframes st-unzoom { from { opacity: 1; transform: none; } to { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.12); } }
+@keyframes st-menu { from { opacity: 0; transform: translateY(-8px) scale(.97); } to { opacity: 1; transform: none; } }
+
+/* Loading screen: the logo builds itself. */
+@keyframes ld-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes ld-pop { 0% { transform: scale(0); } 65% { transform: scale(1.35); } 100% { transform: scale(1); } }
+@keyframes ld-cut { 0% { opacity: 0; transform: rotate(-90deg) scale(.2); } 100% { opacity: 1; transform: none; } }
+@keyframes ld-rise { from { transform: translateY(105%); } to { transform: none; } }
+@keyframes ld-travel { 0% { transform: translateX(0); opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { transform: translateX(198px); opacity: 0; } }
+@keyframes ld-out { to { opacity: 0; transform: scale(1.06); } }
+@keyframes ld-glow { 0%, 100% { filter: drop-shadow(0 0 0 rgba(226, 54, 54, 0)); } 50% { filter: drop-shadow(0 0 10px rgba(226, 54, 54, .55)); } }
+.ld-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: ld-draw 460ms cubic-bezier(.6, 0, .2, 1) forwards; }
+.ld-dot { transform-box: fill-box; transform-origin: center; transform: scale(0); animation: ld-pop 360ms cubic-bezier(.2, .8, .2, 1) forwards; }
+.ld-x { transform-box: fill-box; transform-origin: center; opacity: 0; animation: ld-cut 320ms cubic-bezier(.2, .8, .2, 1) forwards; }
+.ld-word { display: block; transform: translateY(105%); animation: ld-rise 420ms cubic-bezier(.2, .8, .2, 1) forwards; }
+
 @keyframes st-fold { to { opacity: 0; transform: translateX(48px) scale(.96); } }
 @keyframes st-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes st-door-open { 0%, 35% { clip-path: inset(50% 0 50% 0); } 100% { clip-path: inset(0 0 0 0); } }

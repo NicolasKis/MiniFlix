@@ -1,31 +1,22 @@
 import { Fragment, useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { useAnim } from './anim'
 import {
-  ERAS, counts, daysUntil, duration, episodes, fmtDate, isDone, isExtra, poster, released, span, titles, today,
+  ERAS, counts, creditsText, daysUntil, duration, episodes, fmtDate, isDone, isExtra, poster, released, sagaMap, shown, span, titles, today,
   QUALITY_STYLE, totalMins, totals, watchCount, yearOf, type Progress, type Title,
 } from './data'
 import Details from './Details'
 import History from './History'
-import { Check, Chevron, Logo, Service } from './icons'
+import { Check, Chevron, CreditsIcon, Logo, Service } from './icons'
+import Loading from './Loading'
 import { useProgress, useTva, type JellyfinItem, type Net } from './store'
 import Tva from './Tva'
+import Wrapped from './Wrapped'
 
 const KIND = { movie: 'Film', series: 'Series', special: 'Special' } as const
 const EXTRA_LABEL = { debated: 'Debated canon', side: 'Side story', main: '' } as const
-const eraAt = new Map(ERAS.map(e => [e.start, e]))
 const STOP_LABEL = ['Origins', 'Infinity', 'Multiverse', 'Doomsday']
 const EASE = 'cubic-bezier(.2,.8,.2,1)'
 
-// Which saga each title belongs to, by position in the list (titles added later join the last saga).
-const sagaMap = () => {
-  const map = new Map<string, number>()
-  let i = -1
-  for (const t of titles) {
-    if (eraAt.has(t.id)) i = ERAS.findIndex(e => e.start === t.id)
-    map.set(t.id, i)
-  }
-  return map
-}
 
 type Screen = 'timeline' | 'history' | 'tva'
 type Toast = { id: number; label: string; before: Progress }
@@ -46,14 +37,23 @@ export default function App() {
   const [celebrate, setCelebrate] = useState<{ era: number; n: number } | null>(null)
   const [travel, setTravel] = useState<{ pos: number } | null>(null)
   const [arrived, setArrived] = useState<{ era: number; n: number } | null>(null)
-  // Hide watched is a per-device preference, so it lives in this browser only.
-  const [hideWatched, setHideWatched] = useState(() => {
-    try { return localStorage.getItem('st-hide-watched') === '1' } catch { return false }
+  // Hide watched, Spoiler-free and folded sagas are per-device preferences, so they live in this browser only.
+  const [hideWatched, toggleHide] = useLocalFlag('st-hide-watched')
+  const [spoiler, toggleSpoiler] = useLocalFlag('st-spoiler')
+  const [folded, setFolded] = useState<Record<number, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem('st-collapsed') ?? '{}') } catch { return {} }
   })
-  const toggleHide = () => {
-    setHideWatched(!hideWatched)
-    try { localStorage.setItem('st-hide-watched', hideWatched ? '0' : '1') } catch { /* private mode: keep it for this visit */ }
+  const toggleFold = (i: number) => {
+    const next = { ...folded, [i]: !folded[i] }
+    setFolded(next)
+    try { localStorage.setItem('st-collapsed', JSON.stringify(next)) } catch { /* private mode: keep it for this visit */ }
   }
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [plan, setPlan] = useState<number | null>(null)
+  const [recapClosed, setRecapClosed] = useState(false)
+  const [showWrapped, setShowWrapped] = useState(false)
+  // The logo builds itself while the app opens (it has its own animation switch).
+  const [loading, setLoading] = useState(() => anim.on('loading'))
 
   // The Undo bar disappears 5 seconds after the last tick.
   useEffect(() => {
@@ -76,8 +76,9 @@ export default function App() {
   const pctNow = p ? totals(p).pct : 0
   const shownPct = useRolling(pctNow, anim.on('counter'), entering?.screen === 'timeline' && anim.on('timeline') ? entering.n : 0)
 
+  const splash = loading && <Loading ready={!!p || net.offline} onDone={() => setLoading(false)} />
   if (!p) {
-    return (
+    return splash || (
       <main className="min-h-dvh grid place-items-center p-6 text-center text-muted">
         {net.offline ? "Can't reach the Sacred Timeline server. Check that Tailscale is on, then reload." : 'Loading…'}
       </main>
@@ -85,6 +86,7 @@ export default function App() {
   }
 
   const go = (s: Screen) => {
+    setMenuOpen(false)
     if (s === screen) return
     setScreen(s)
     setEntering({ screen: s, n: (entering?.n ?? 0) + 1 })
@@ -107,6 +109,16 @@ export default function App() {
     }
     commit({ watched: w })
     setToast({ id: (toast?.id ?? 0) + 1, label, before: p })
+    // Ticking the very last title opens the Wrapped card.
+    const done = (x: Progress) => { const r = totals(x); return r.total > 0 && r.watched >= r.total }
+    if (!done(p) && done({ ...p, watched: w })) setShowWrapped(true)
+  }
+  const setHidden = (t: Title, on: boolean) => {
+    const h = { ...p.hidden }
+    if (on) h[t.id] = true
+    else delete h[t.id]
+    commit({ hidden: h })
+    setToast({ id: (toast?.id ?? 0) + 1, label: on ? `${t.title} hidden from the timeline` : `${t.title} is back on the timeline`, before: p })
   }
   const rewatch = (t: Title) => {
     commit({ log: [...p.log, { id: t.id, date: today() }] })
@@ -119,13 +131,14 @@ export default function App() {
   }
 
   const eraOf = sagaMap()
+  const list = shown(p)
   const { counted, total, watched } = totals(p)
   const finished = total > 0 && watched >= total
   const next = counted.find(t => !isDone(t, p))
   const nextEp = next?.kind === 'series' ? episodes(next).find(e => e.aired && !p.watched[e.key]) : undefined
 
   // A saga is complete when every released title that counts (main plus extras you added) is watched.
-  const sagaTitles = (i: number) => titles.filter(t => eraOf.get(t.id) === i && counts(t, p))
+  const sagaTitles = (i: number) => list.filter(t => eraOf.get(t.id) === i && counts(t, p))
   const complete = ERAS.map((_, i) => sagaTitles(i).length > 0 && sagaTitles(i).every(t => isDone(t, p)))
 
   const toggleTitle = (t: Title) => {
@@ -165,7 +178,7 @@ export default function App() {
   // Saga jump bar: a small timeline, red up to the saga you're in.
   const currentEra = next ? (eraOf.get(next.id) ?? 0) : ERAS.length - 1
   const stops = ERAS.map((era, i) => {
-    const inEra = titles.filter(t => eraOf.get(t.id) === i)
+    const inEra = list.filter(t => eraOf.get(t.id) === i)
     const soon = inEra.every(t => !released(t))
     return { era, i, state: soon ? 'soon' : i < currentEra ? 'done' : i === currentEra ? 'here' : 'ahead' }
   })
@@ -186,8 +199,42 @@ export default function App() {
   const jellyfin = new Map<string, JellyfinItem>((tva.jellyfin?.items ?? []).filter(i => i.tmdb).map(i => [`${i.type}/${i.tmdb}`, i]))
   const onJellyfin = (t: Title) => (t.tmdb ? jellyfin.get(t.tmdb) : undefined)
 
-  const hidden = (t: Title) => hideWatched && released(t) && isDone(t, p)
-  const hiddenInEra = ERAS.map((_, i) => titles.filter(t => eraOf.get(t.id) === i && hidden(t)).length)
+  const tucked = (t: Title) => hideWatched && released(t) && isDone(t, p)
+  const tuckedInEra = ERAS.map((_, i) => list.filter(t => eraOf.get(t.id) === i && tucked(t)).length)
+  // Each saga heading sits above its first title still on the timeline.
+  const heads = new Map<string, number>()
+  for (const t of list) if (![...heads.values()].includes(eraOf.get(t.id)!)) heads.set(t.id, eraOf.get(t.id)!)
+  const isFolded = (i: number) => complete[i] && !!folded[i]
+
+  // "Previously on": after a week or more away, Up next recaps the last thing you watched.
+  const lastTick = Object.entries(p.watched).sort((a, b) => b[1].localeCompare(a[1]))[0]
+  const lastTitle = lastTick ? list.find(t => t.id === lastTick[0].split(':')[0]) : undefined
+  const away = lastTick ? -daysUntil(lastTick[1]) : 0
+  const lastEp = lastTick?.[0].split(':')
+  const recap = next && lastTitle && away >= 7 && !recapClosed
+    ? {
+        t: lastTitle,
+        heading: `Previously on Sacred Timeline · ${lastTitle.title}${lastEp && lastEp.length === 3 ? ` S${lastEp[1]} E${lastEp[2]}` : ''}, ${away} days ago`,
+        text: lastTitle.overview?.split(/(?<=\.)\s/)[0] ?? '',
+      }
+    : null
+
+  // Tonight planner: what fits, in timeline order, into the time you have.
+  const minsLeft = (t: Title) => (t.kind === 'series' ? episodes(t).filter(e => e.aired && !p.watched[e.key]).reduce((a, e) => a + e.min, 0) : totalMins(t))
+  let planText = ''
+  if (plan && next) {
+    let used = 0
+    const picks: string[] = []
+    for (const t of counted.filter(x => !isDone(x, p))) {
+      if (used + minsLeft(t) > plan) break
+      used += minsLeft(t)
+      picks.push(t.title)
+    }
+    const names = picks.length < 2 ? picks.join('') : `${picks.slice(0, -1).join(', ')} and ${picks[picks.length - 1]}`
+    planText = !picks.length
+      ? `Nothing fits fully tonight: ${next.title} needs ${duration(minsLeft(next))}.`
+      : `That fits ${names} (${duration(used)})${plan - used >= 5 ? `, with ${duration(plan - used)} to spare.` : '.'}`
+  }
   const detailTitle = detail ? titles.find(t => t.id === detail.id) : undefined
   // The details card grows out of whatever you tapped, so remember where that was.
   const openDetail = (t: Title, e?: MouseEvent<HTMLElement>) => {
@@ -200,7 +247,7 @@ export default function App() {
   {
     let prevYear = ''
     let mainDone = false
-    for (const t of titles) {
+    for (const t of list) {
       const out = released(t)
       const done = out && isDone(t, p)
       const branch = isExtra(t) && !p.included[t.id]
@@ -227,7 +274,7 @@ export default function App() {
         className="mx-auto flex max-w-[1120px] flex-col gap-10 px-5"
         style={{ paddingTop: 'calc(env(safe-area-inset-top) + 20px)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}
       >
-        <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+        <header className="relative z-20 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
           <div className="flex items-center gap-3">
             <Logo />
             <h1 className="m-0 font-display text-[28px] font-extrabold uppercase leading-[0.9] tracking-[-0.01em]">
@@ -236,7 +283,7 @@ export default function App() {
           </div>
           <SyncPill net={net} />
           <div className="flex items-center gap-2">
-            <nav aria-label="Screens" className="flex gap-1 rounded-full bg-surface p-1">
+            <nav aria-label="Screens" className="hidden gap-1 rounded-full bg-surface p-1 sm:flex">
               {(['timeline', 'history'] as const).map(s => (
                 <button
                   key={s}
@@ -253,7 +300,7 @@ export default function App() {
               type="button"
               onClick={() => go('tva')}
               aria-current={screen === 'tva' ? 'page' : undefined}
-              className={`flex h-12 items-center gap-2 rounded-full border-0 pl-3 pr-4 text-base font-extrabold tracking-[0.04em] ${screen === 'tva' ? 'bg-gold text-bg' : 'bg-surface text-gold'}`}
+              className={`hidden h-12 items-center gap-2 rounded-full border-0 pl-3 pr-4 text-base font-extrabold tracking-[0.04em] sm:flex ${screen === 'tva' ? 'bg-gold text-bg' : 'bg-surface text-gold'}`}
             >
               <svg
                 width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
@@ -272,17 +319,62 @@ export default function App() {
                 </span>
               )}
             </button>
+            {/* Phones get one menu button instead of the tabs, with the TVA count on it. */}
+            <button
+              type="button"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-expanded={menuOpen}
+              aria-label={tva.variances.length ? `Menu, ${tva.variances.length} TVA changes to review` : 'Menu'}
+              className="relative grid size-12 place-items-center rounded-full border-0 bg-surface p-0 text-ink sm:hidden"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+                {menuOpen ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
+              </svg>
+              {tva.variances.length > 0 && (
+                <span aria-hidden="true" className="absolute right-0.5 top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full border-2 border-bg bg-red px-[5px] text-[11px] font-extrabold text-white">
+                  {tva.variances.length}
+                </span>
+              )}
+            </button>
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 sm:hidden" onClick={() => setMenuOpen(false)} />
+                <nav aria-label="Screens" className="absolute right-0 top-[60px] flex w-[230px] origin-top-right flex-col gap-1 rounded-2xl bg-surface p-2 shadow-[0_16px_40px_rgba(0,0,0,0.6)] [animation:st-menu_200ms_cubic-bezier(.2,.8,.2,1)_both] sm:hidden">
+                  {([['timeline', 'Timeline'], ['history', 'History'], ['tva', 'TVA']] as const).map(([s, label]) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => go(s)}
+                      aria-current={screen === s ? 'page' : undefined}
+                      className={`flex h-12 items-center justify-between rounded-xl border-0 px-4 text-left text-[17px] font-bold ${screen === s ? 'bg-ink text-bg' : 'bg-transparent text-ink'}`}
+                    >
+                      {label}
+                      {s === 'tva' && tva.variances.length > 0 && (
+                        <span className="grid h-[22px] min-w-[22px] place-items-center rounded-full bg-red px-1.5 text-[13px] font-extrabold text-white">{tva.variances.length}</span>
+                      )}
+                    </button>
+                  ))}
+                </nav>
+              </>
+            )}
           </div>
         </header>
 
         {screen === 'tva' ? (
-          <Tva tva={tva} anim={anim} entering={entering?.screen === 'tva'} onReset={() => save({ watched: {}, included: {}, minimised: {}, started: null, log: [] })} />
+          <Tva
+            tva={tva}
+            anim={anim}
+            entering={entering?.screen === 'tva'}
+            hidden={titles.filter(t => p.hidden[t.id])}
+            onShow={t => setHidden(t, false)}
+            onReset={() => save({ watched: {}, included: {}, minimised: {}, started: null, log: [], hidden: p.hidden })}
+          />
         ) : screen === 'history' ? (
-          <History p={p} onOpen={openDetail} onRewatch={rewatch} entering={entering?.screen === 'history' && anim.on('history')} />
+          <History p={p} onOpen={openDetail} onRewatch={rewatch} entering={entering?.screen === 'history' && anim.on('history')} finished={finished} onWrapped={() => setShowWrapped(true)} />
         ) : (
         <>
         {tva.variances.length > 0 && (
-          <div role="status" className="hidden items-center justify-between gap-4 rounded-xl border-2 border-gold bg-[#2A2312] px-5 py-3 md:flex">
+          <div role="status" className="hidden items-center justify-between gap-4 rounded-xl border-2 border-gold bg-[#2A2312] px-5 py-3 sm:flex">
             <span className="font-semibold">The TVA found {tva.variances.length} {tva.variances.length === 1 ? 'change' : 'changes'} to your timeline.</span>
             <button type="button" onClick={() => go('tva')} className="h-10 shrink-0 rounded-full border-0 bg-gold px-5 text-base font-extrabold text-bg">Review</button>
           </div>
@@ -339,6 +431,35 @@ export default function App() {
               >
                 {nextEp ? 'Mark episode watched' : 'Mark watched'}
               </button>
+              {recap && (
+                <div className="order-3 flex basis-full items-start gap-3.5 rounded-[10px] bg-track px-4 py-3.5">
+                  {recap.t.poster && <img src={poster(recap.t, 'w154')} alt="" width={40} height={60} className="h-[60px] w-10 shrink-0 rounded-[3px] object-cover" />}
+                  <div className="flex min-w-0 flex-auto flex-col gap-1">
+                    <span className="text-sm font-bold text-gold">{recap.heading}</span>
+                    {recap.text && <span className="text-base leading-snug">{recap.text}</span>}
+                  </div>
+                  <button type="button" onClick={() => setRecapClosed(true)} aria-label="Hide the recap" className="grid size-9 shrink-0 place-items-center rounded-full border-0 bg-transparent text-muted">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+                  </button>
+                </div>
+              )}
+              <div className="order-4 flex basis-full flex-col gap-2.5">
+                <span className="font-semibold text-muted">Tonight I have</span>
+                <div role="group" aria-label="Tonight I have" className="grid max-w-[360px] grid-cols-4 gap-2">
+                  {[60, 120, 180, 240].map(m => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setPlan(plan === m ? null : m)}
+                      aria-pressed={plan === m}
+                      className={`h-10 rounded-full border-2 px-2 text-[15px] font-bold ${plan === m ? 'border-gold bg-gold text-bg' : 'border-line bg-transparent text-ink'}`}
+                    >
+                      {m / 60} h
+                    </button>
+                  ))}
+                </div>
+                {planText && <span role="status" className="leading-snug">{planText}</span>}
+              </div>
             </>
           ) : (
             <h2 className="m-0 font-display text-[clamp(36px,5vw,56px)] font-bold leading-[0.95]">You're all caught up.</h2>
@@ -390,7 +511,19 @@ export default function App() {
           </div>
         </nav>
 
-        <div className="-mb-7 flex justify-end">
+        <div className="-mb-7 flex flex-wrap justify-end gap-x-7 gap-y-2">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={spoiler}
+            onClick={toggleSpoiler}
+            className="flex h-11 items-center gap-3 border-0 bg-transparent p-0 text-[15px] font-semibold text-ink"
+          >
+            Spoiler-free
+            <span className={`relative inline-block h-[26px] w-[46px] shrink-0 rounded-full ${spoiler ? 'bg-btn' : 'bg-line'}`}>
+              <span className="absolute top-[3px] size-5 rounded-full bg-ink transition-[left]" style={{ left: spoiler ? 23 : 3 }} />
+            </span>
+          </button>
           <button
             type="button"
             role="switch"
@@ -406,9 +539,10 @@ export default function App() {
         </div>
 
         <section aria-label="Timeline" className="flex flex-col">
-          {titles.map(t => {
-            const era = eraAt.get(t.id)
-            const eraIndex = era ? ERAS.indexOf(era) : -1
+          {list.map(t => {
+            const eraIndex = heads.get(t.id) ?? -1
+            const era = eraIndex >= 0 ? ERAS[eraIndex] : undefined
+            const foldedAway = isFolded(eraOf.get(t.id) ?? -1)
             const out = released(t)
             const done = out && isDone(t, p)
             const extra = isExtra(t)
@@ -426,7 +560,7 @@ export default function App() {
             const mine = tickFx?.id === t.id ? tickFx : null
             const party = celebrate && celebrate.era === eraOf.get(t.id)
             const headIdx = era ? rowIdx++ : 0
-            const idx = hidden(t) ? 0 : rowIdx++
+            const idx = tucked(t) || foldedAway ? 0 : rowIdx++
 
             return (
               <div key={t.id}>
@@ -435,7 +569,7 @@ export default function App() {
                     <span />
                     <div className="relative">
                       <div
-                        className={`absolute inset-y-0 left-2.5 w-1 ${railRed ? 'bg-red' : 'bg-track'}`}
+                        className={`absolute inset-y-0 left-2.5 w-1 ${railRed || complete[eraIndex] ? 'bg-red' : 'bg-track'}`}
                         style={celebrate?.era === eraIndex ? { animation: 'st-sparks 900ms ease-out both' } : enterRail(headIdx)}
                       />
                     </div>
@@ -443,38 +577,55 @@ export default function App() {
                       {celebrate?.era === eraIndex && (
                         <div aria-hidden="true" className="pointer-events-none absolute -inset-x-2 bottom-1.5 top-9 origin-left rounded-lg bg-[rgba(245,165,36,0.22)] [animation:st-sweep_1300ms_ease-out_both]" />
                       )}
-                      <h2
-                        key={arrived?.era === eraIndex ? `arrived-${arrived.n}` : 'head'}
-                        className="relative m-0 font-display text-[clamp(34px,4.4vw,48px)] font-extrabold uppercase leading-[0.95]"
-                        style={celebrate?.era === eraIndex ? { animation: 'st-glow-text 1400ms ease-out both' }
-                          : arrived?.era === eraIndex && anim.on('jump') ? { animation: 'st-flash 1000ms ease-out both' } : undefined}
-                      >
-                        {era.name}
-                      </h2>
+                      <span className="relative flex items-center justify-between gap-3">
+                        <h2
+                          key={arrived?.era === eraIndex ? `arrived-${arrived.n}` : 'head'}
+                          className="m-0 font-display text-[clamp(34px,4.4vw,48px)] font-extrabold uppercase leading-[0.95]"
+                          style={celebrate?.era === eraIndex ? { animation: 'st-glow-text 1400ms ease-out both' }
+                            : arrived?.era === eraIndex && anim.on('jump') ? { animation: 'st-flash 1000ms ease-out both' } : undefined}
+                        >
+                          {era.name}
+                        </h2>
+                        {complete[eraIndex] && (
+                          <button
+                            type="button"
+                            onClick={() => toggleFold(eraIndex)}
+                            aria-expanded={!isFolded(eraIndex)}
+                            aria-label={`${isFolded(eraIndex) ? 'Show' : 'Fold away'} the titles of ${era.name}`}
+                            className="grid size-10 shrink-0 place-items-center rounded-full border-0 bg-surface text-muted"
+                          >
+                            <Chevron down={isFolded(eraIndex)} />
+                          </button>
+                        )}
+                      </span>
+                      {/* Finished sagas: the stamp gets its own line, with the saga's hours and title count beside it. */}
                       {complete[eraIndex] && (
-                        <span className="relative flex py-1.5">
+                        <span className="relative flex flex-wrap items-center gap-x-4 gap-y-3 pb-2 pt-1.5">
                           <span
                             className="inline-block rotate-[-4deg] rounded-md border-[3px] border-red px-3 py-0.5 font-display text-[22px] font-extrabold uppercase tracking-[0.06em] text-[#F07B7B]"
                             style={celebrate?.era === eraIndex ? { animation: `st-stamp-tilt 620ms ${EASE} 250ms both` } : undefined}
                           >
                             Saga complete
                           </span>
+                          <span className="font-display text-[22px] font-bold">
+                            {duration(sagaTitles(eraIndex).reduce((a, x) => a + totalMins(x), 0))} · {sagaTitles(eraIndex).length} {sagaTitles(eraIndex).length === 1 ? 'title' : 'titles'}
+                          </span>
                         </span>
                       )}
-                      <span className="relative text-[15px] text-muted">{era.years}</span>
+                      <span className="relative text-[15px] text-muted">{isFolded(eraIndex) ? `${era.years} · tap the arrow to show its titles` : era.years}</span>
                     </div>
                   </div>
                 )}
-                {era && hiddenInEra[eraIndex] > 0 && (
+                {era && tuckedInEra[eraIndex] > 0 && !isFolded(eraIndex) && (
                   <div className="grid grid-cols-[38px_30px_minmax(0,1fr)] gap-x-2 sm:grid-cols-[52px_34px_minmax(0,1fr)] sm:gap-x-3">
                     <span />
                     <div className="relative"><div className={`absolute inset-y-0 left-2.5 w-1 ${railRed ? 'bg-red' : 'bg-track'}`} /></div>
                     <span className="pb-3.5 text-[15px] text-muted">
-                      {hiddenInEra[eraIndex]} watched {hiddenInEra[eraIndex] === 1 ? 'title' : 'titles'} hidden
+                      {tuckedInEra[eraIndex]} watched {tuckedInEra[eraIndex] === 1 ? 'title' : 'titles'} hidden
                     </span>
                   </div>
                 )}
-                {!hidden(t) && (
+                {!tucked(t) && !foldedAway && (
                 <div className="grid grid-cols-[38px_30px_minmax(0,1fr)] gap-x-2 sm:grid-cols-[52px_34px_minmax(0,1fr)] sm:gap-x-3">
                   <span className="pt-4 text-right font-display text-base font-semibold tabular-nums text-muted sm:text-xl">{showYear ? year : ''}</span>
                   <div className="relative">
@@ -530,6 +681,12 @@ export default function App() {
                               <span className="text-[15px] text-muted">{meta.filter(Boolean).join(' · ')}</span>
                               {watchCount(t, p) > 1 && <span className="text-[15px] font-bold text-gold">Watched {watchCount(t, p)}×</span>}
                               {out && <Services t={t} jf={onJellyfin(t)} />}
+                              {t.credits && (t.credits.mid || t.credits.end) && (
+                                <span title={creditsText(t.credits, true)} className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md bg-[#2A2312] px-2 py-0.5 text-[13px] font-bold text-gold">
+                                  <CreditsIcon size={12} />
+                                  {creditsText(t.credits)}
+                                </span>
+                              )}
                             </div>
                             {t.note && <span className="text-[15px] text-muted">{t.note}</span>}
                           </>
@@ -657,6 +814,7 @@ export default function App() {
       </div>
       {detailTitle && (
         <Details
+          key={detailTitle.id}
           t={detailTitle}
           p={p}
           services={<Services t={detailTitle} jf={onJellyfin(detailTitle)} />}
@@ -664,8 +822,16 @@ export default function App() {
           onClose={() => setDetail(null)}
           onToggle={() => toggleTitle(detailTitle)}
           onRewatch={() => rewatch(detailTitle)}
+          spoiler={spoiler}
+          hidden={!!p.hidden[detailTitle.id]}
+          onHide={() => {
+            setDetail(null)
+            setHidden(detailTitle, !p.hidden[detailTitle.id])
+          }}
         />
       )}
+      {showWrapped && <Wrapped p={p} onClose={() => setShowWrapped(false)} />}
+      {splash}
       <BackToTop raised={!!toast} />
       {toast && (
         <div
@@ -687,6 +853,18 @@ export default function App() {
       )}
     </div>
   )
+}
+
+// An on/off preference kept in this browser only.
+function useLocalFlag(key: string) {
+  const [on, setOn] = useState(() => {
+    try { return localStorage.getItem(key) === '1' } catch { return false }
+  })
+  const toggle = () => {
+    setOn(!on)
+    try { localStorage.setItem(key, on ? '0' : '1') } catch { /* private mode: keep it for this visit */ }
+  }
+  return [on, toggle] as const
 }
 
 // The big percentage rolls to its new value (and counts up from 0 each time the timeline opens).

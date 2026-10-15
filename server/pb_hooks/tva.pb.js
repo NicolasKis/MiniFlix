@@ -64,9 +64,59 @@ routerAdd("POST", "/api/st/variance/resolve", (e) => {
 
 cronAdd("variance-check", "0 5 1,15 * *", () => {
   try {
-    require(`${__hooks}/variance.js`).check($app)
+    const found = require(`${__hooks}/variance.js`).check($app)
+    const waiting = JSON.parse($app.findRecordById("tva", "tvastate0000001").getString("variances") || "[]").length
+    if (found) require(`${__hooks}/push.js`).notify($app, "variances", "The TVA found " + waiting + (waiting === 1 ? " change" : " changes"), "Open TVA to approve or dismiss them.")
   } catch (err) {
     console.log("variance check failed:", err)
+  }
+})
+
+// Notifications: each device subscribes with the kinds it wants; the server keeps them private.
+routerAdd("GET", "/api/st/push/key", (e) => e.json(200, { key: $os.getenv("VAPID_PUBLIC") }))
+
+routerAdd("POST", "/api/st/push/subscribe", (e) => {
+  const body = e.requestInfo().body
+  const sub = body && body.sub
+  if (!sub || typeof sub.endpoint !== "string" || !/^https:\/\//.test(sub.endpoint) || !sub.keys) return e.json(400, { error: "That isn't a valid subscription." })
+  const kinds = body.kinds || {}
+  let record
+  try {
+    record = e.app.findFirstRecordByData("pushsubs", "endpoint", sub.endpoint)
+  } catch (_) {
+    record = new Record(e.app.findCollectionByNameOrId("pushsubs"))
+    record.set("endpoint", sub.endpoint)
+  }
+  record.set("sub", { endpoint: sub.endpoint, keys: { p256dh: String(sub.keys.p256dh), auth: String(sub.keys.auth) } })
+  record.set("kinds", { releases: kinds.releases === true, variances: kinds.variances === true, backup: kinds.backup === true })
+  e.app.save(record)
+  return e.json(200, { ok: true })
+})
+
+routerAdd("POST", "/api/st/push/unsubscribe", (e) => {
+  const body = e.requestInfo().body
+  try {
+    e.app.delete(e.app.findFirstRecordByData("pushsubs", "endpoint", String(body && body.endpoint)))
+  } catch (_) {}
+  return e.json(200, { ok: true })
+})
+
+routerAdd("POST", "/api/st/push/test", (e) => {
+  const body = e.requestInfo().body
+  try {
+    const record = e.app.findFirstRecordByData("pushsubs", "endpoint", String(body && body.endpoint))
+    const sent = require(`${__hooks}/push.js`).send(e.app, [record], "Sacred Timeline", "Notifications work on this device.")
+    return sent ? e.json(200, { ok: true }) : e.json(502, { error: "The push service didn't accept the test. Try turning notifications off and on." })
+  } catch (err) {
+    return e.json(404, { error: "This device isn't subscribed. Turn notifications off and on again." })
+  }
+})
+
+cronAdd("daily-notifications", "0 7 * * *", () => {
+  try {
+    require(`${__hooks}/push.js`).daily($app)
+  } catch (err) {
+    console.log("daily notifications failed:", err)
   }
 })
 
