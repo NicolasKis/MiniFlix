@@ -64,9 +64,13 @@ routerAdd("POST", "/api/st/variance/resolve", (e) => {
 
 cronAdd("variance-check", "0 5 1,15 * *", () => {
   try {
+    const push = require(`${__hooks}/push.js`)
+    const pending = () => JSON.parse($app.findRecordById("tva", "tvastate0000001").getString("variances") || "[]")
+    const before = pending().map((v) => v.key)
     const found = require(`${__hooks}/variance.js`).check($app)
-    const waiting = JSON.parse($app.findRecordById("tva", "tvastate0000001").getString("variances") || "[]").length
-    if (found) require(`${__hooks}/push.js`).notify($app, "variances", "The TVA found " + waiting + (waiting === 1 ? " change" : " changes"), "Open TVA to approve or dismiss them.")
+    const waiting = pending().length
+    if (found) push.notify($app, "variances", "The TVA found " + waiting + (waiting === 1 ? " change" : " changes"), "Open TVA to approve or dismiss them.")
+    if (found) push.leaving($app, before)
   } catch (err) {
     console.log("variance check failed:", err)
   }
@@ -88,7 +92,9 @@ routerAdd("POST", "/api/st/push/subscribe", (e) => {
     record.set("endpoint", sub.endpoint)
   }
   record.set("sub", { endpoint: sub.endpoint, keys: { p256dh: String(sub.keys.p256dh), auth: String(sub.keys.auth) } })
-  record.set("kinds", { releases: kinds.releases === true, variances: kinds.variances === true, backup: kinds.backup === true })
+  const allowed = {}
+  ;["releases", "variances", "backup", "countdown", "episodes", "leaving"].forEach((k) => (allowed[k] = kinds[k] === true))
+  record.set("kinds", allowed)
   e.app.save(record)
   return e.json(200, { ok: true })
 })

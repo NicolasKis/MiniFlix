@@ -1,16 +1,20 @@
 import { useEffect, useState } from 'react'
 import { runTask } from './store'
 
-export type Kinds = { releases: boolean; variances: boolean; backup: boolean }
+export type Kinds = { releases: boolean; countdown: boolean; episodes: boolean; leaving: boolean; variances: boolean; backup: boolean }
 export const NOTIF_KINDS = [
   ['releases', 'New releases', 'When a title on your timeline comes out'],
+  ['countdown', 'Countdown', 'A week before a release, with how much you have left to catch up'],
+  ['episodes', 'New episode', "When a show you're partway through gets a new episode"],
+  ['leaving', 'Leaving a service', 'When a title on your timeline leaves your streaming services'],
   ['variances', 'Variance report', 'When the TVA finds changes for you to approve'],
   ['backup', 'Backup reminder', "A nudge on the 1st if you haven't backed up for a month"],
 ] as const
 
 const KINDS = 'st-notif-kinds'
+const DEFAULTS: Kinds = { releases: true, countdown: true, episodes: true, leaving: true, variances: true, backup: false }
 const readKinds = (): Kinds => {
-  try { return { releases: true, variances: true, backup: false, ...JSON.parse(localStorage.getItem(KINDS) ?? '{}') } } catch { return { releases: true, variances: true, backup: false } }
+  try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(KINDS) ?? '{}') } } catch { return DEFAULTS }
 }
 
 // Web push needs a service worker and, on iPhone, the app opened from the Home Screen.
@@ -27,11 +31,15 @@ const toKey = (base64: string) => {
 export function usePush() {
   const [on, setOn] = useState(false)
   const [kinds, setKinds] = useState<Kinds>(readKinds)
-  useEffect(() => {
-    if (pushSupported()) subscription().then(s => setOn(!!s)).catch(() => {})
-  }, [])
-
   const send = (sub: PushSubscription, k: Kinds) => runTask('push/subscribe', { sub: sub.toJSON(), kinds: k })
+  useEffect(() => {
+    if (!pushSupported()) return
+    subscription().then(s => {
+      setOn(!!s)
+      // Keeps the server's copy of this device's switches current (new kinds start on).
+      if (s) runTask('push/subscribe', { sub: s.toJSON(), kinds: readKinds() })
+    }).catch(() => {})
+  }, [])
 
   const enable = async (): Promise<string | null> => {
     if (await Notification.requestPermission() !== 'granted') return 'Notifications are blocked. Allow them in your phone or browser settings.'

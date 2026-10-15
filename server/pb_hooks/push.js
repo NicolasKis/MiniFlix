@@ -34,9 +34,30 @@ function daily(app) {
   const progress = JSON.parse(app.findRecordById("progress", "progressstate01").getString("data") || "{}")
   const hidden = progress.hidden || {}
   if (catalog) {
-    catalog.titles
-      .filter((t) => t.release === today && !hidden[t.id])
+    const titles = catalog.titles.filter((t) => !hidden[t.id])
+    titles
+      .filter((t) => t.release === today)
       .forEach((t) => notify(app, "releases", t.title + " is out today", "It's on your Sacred Timeline" + (t.where && t.where.length ? ", on " + t.where.join(", ") : "") + "."))
+
+    // Countdown: a week before a release, with how much is left to catch up on.
+    const inWeek = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10)
+    const soon = titles.filter((t) => t.release === inWeek)
+    if (soon.length) {
+      const left = minutesLeft(titles, progress, today)
+      const h = Math.floor(left / 60), m = left % 60
+      soon.forEach((t) => notify(app, "countdown", t.title + " in 7 days",
+        left ? "You have " + (h ? h + " h " : "") + (m ? m + " min " : "") + "left before you're caught up." : "You're all caught up. Ready when it lands."))
+    }
+
+    // New episode: only for shows you're partway through.
+    const watched = progress.watched || {}
+    titles.filter((t) => t.kind === "series").forEach((t) => {
+      const started = Object.keys(watched).some((k) => k.indexOf(t.id + ":") === 0)
+      if (!started) return
+      ;(t.seasons || []).forEach((s) => s.episodes.forEach((e, i) => {
+        if (typeof e === "object" && e.airs === today) notify(app, "episodes", "New episode of " + t.title, "Season " + s.season + ", episode " + (i + 1) + " is out today.")
+      }))
+    })
   }
   if (today.slice(8) === "01") {
     const last = tva.getString("lastBackup")
@@ -46,4 +67,36 @@ function daily(app) {
   }
 }
 
-module.exports = { send: send, notify: notify, daily: daily }
+// Minutes still to watch on everything that counts: released main titles plus extras you added, as in the app.
+function minutesLeft(titles, progress, today) {
+  const watched = progress.watched || {}
+  const included = progress.included || {}
+  let left = 0
+  titles.forEach((t) => {
+    if (!t.release || t.release > today || (t.category !== "main" && !included[t.id])) return
+    if (t.kind !== "series") { if (!watched[t.id]) left += t.runtime || 0; return }
+    ;(t.seasons || []).forEach((s) => s.episodes.forEach((e, i) => {
+      const min = typeof e === "number" ? e : e.min
+      const aired = typeof e === "number" || !e.airs || e.airs <= today
+      if (aired && !watched[t.id + ":" + s.season + ":" + (i + 1)]) left += min
+    }))
+  })
+  return left
+}
+
+// After a variance check: tell devices about titles that left one of your streaming services.
+function leaving(app, before) {
+  const tva = app.findRecordById("tva", "tvastate0000001")
+  const catalog = JSON.parse(tva.getString("catalog") || "null")
+  const known = {}
+  before.forEach((k) => (known[k] = true))
+  JSON.parse(tva.getString("variances") || "[]")
+    .filter((v) => v.kind === "streaming" && !known[v.key])
+    .forEach((v) => {
+      const t = catalog && catalog.titles.filter((x) => x.id === v.patch.titleId)[0]
+      const gone = ((t && t.where) || []).filter((w) => v.patch.fields.where.indexOf(w) === -1)
+      if (gone.length) notify(app, "leaving", v.title + " left " + gone.join(" and "), "It's no longer on " + gone.join(" or ") + " in Slovakia. Open TVA to update your timeline.")
+    })
+}
+
+module.exports = { send: send, notify: notify, daily: daily, leaving: leaving }
