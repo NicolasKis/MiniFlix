@@ -10,6 +10,7 @@ import { Check, Chevron, CreditsIcon, Logo, Service } from './icons'
 import Loading from './Loading'
 import Nexus from './Nexus'
 import { useProgress, useTva, type JellyfinItem, type Net } from './store'
+import TemPad from './TemPad'
 import Tva from './Tva'
 import Wrapped from './Wrapped'
 
@@ -19,7 +20,7 @@ const STOP_LABEL = ['Origins', 'Infinity', 'Multiverse', 'Doomsday']
 const EASE = 'cubic-bezier(.2,.8,.2,1)'
 
 
-type Screen = 'timeline' | 'history' | 'tva'
+type Screen = 'timeline' | 'history' | 'tempad' | 'tva'
 type Toast = { id: number; label: string; before: Progress }
 // The last thing you did, so its animation can play once (n restarts it).
 type Fx = { id: string; kind: 'tick' | 'untick' | 'season' | 'branch-out'; season?: number; n: number }
@@ -312,15 +313,15 @@ export default function App() {
           <SyncPill net={net} />
           <div className="flex items-center gap-2">
             <nav aria-label="Screens" className="hidden gap-1 rounded-full bg-surface p-1 sm:flex">
-              {(['timeline', 'history'] as const).map(s => (
+              {([['timeline', 'Timeline'], ['history', 'History'], ['tempad', 'TemPad']] as const).map(([s, label]) => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => go(s)}
                   aria-current={screen === s ? 'page' : undefined}
-                  className={`h-10 rounded-full border-0 px-4 text-base font-bold capitalize sm:px-[18px] ${screen === s ? 'bg-ink text-bg' : 'bg-transparent text-ink'}`}
+                  className={`h-10 rounded-full border-0 px-4 text-base font-bold sm:px-[18px] ${screen === s ? 'bg-ink text-bg' : 'bg-transparent text-ink'}`}
                 >
-                  {s}
+                  {label}
                 </button>
               ))}
             </nav>
@@ -368,7 +369,7 @@ export default function App() {
               <>
                 <div className="fixed inset-0 sm:hidden" onClick={() => setMenuOpen(false)} />
                 <nav aria-label="Screens" className="absolute right-0 top-[60px] flex w-[230px] origin-top-right flex-col gap-1 rounded-2xl bg-surface p-2 shadow-[0_16px_40px_rgba(0,0,0,0.6)] [animation:st-menu_200ms_cubic-bezier(.2,.8,.2,1)_both] sm:hidden">
-                  {([['timeline', 'Timeline'], ['history', 'History'], ['tva', 'TVA']] as const).map(([s, label]) => (
+                  {([['timeline', 'Timeline'], ['history', 'History'], ['tempad', 'TemPad'], ['tva', 'TVA']] as const).map(([s, label]) => (
                     <button
                       key={s}
                       type="button"
@@ -397,6 +398,8 @@ export default function App() {
             onShow={t => setHidden(t, false)}
             onReset={() => save({ watched: {}, included: {}, minimised: {}, started: null, log: [], hidden: p.hidden })}
           />
+        ) : screen === 'tempad' ? (
+          <TemPad keepDays={tva.tempad.keepDays} limitGB={tva.tempad.limitGB} />
         ) : screen === 'history' ? (
           <History p={p} onOpen={openDetail} onRewatch={rewatch} entering={entering?.screen === 'history' && anim.on('history')} finished={finished} onWrapped={() => setShowWrapped(true)} />
         ) : (

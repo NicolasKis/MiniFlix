@@ -2,7 +2,7 @@ import PocketBase, { type RecordModel } from 'pocketbase'
 import { useEffect, useRef, useState } from 'react'
 import { setTitles, type Progress, type Title } from './data'
 
-const pb = new PocketBase('/')
+export const pb = new PocketBase('/')
 const progress = pb.collection('progress')
 const ID = 'progressstate01'
 const CACHE = 'st-cache'
@@ -100,7 +100,9 @@ export type Tva = {
   variances: Variance[]
   varChecked: string
   hasCatalog: boolean
+  tempad: TempadSettings
 }
+export type TempadSettings = { keepDays: number; limitGB: number; lastPrune: { at: string; count: number; bytes: number } | null }
 
 const readTva = (r: RecordModel): Tva => {
   const catalog = r.catalog as { titles?: Title[] } | null
@@ -111,6 +113,7 @@ const readTva = (r: RecordModel): Tva => {
     variances: (r.variances as Variance[]) ?? [],
     varChecked: (r.varChecked as string) ?? '',
     hasCatalog: !!catalog?.titles?.length,
+    tempad: { keepDays: 30, limitGB: 20, lastPrune: null, ...(r.tempad as Partial<TempadSettings> | null) },
   }
 }
 
@@ -118,7 +121,7 @@ const readTva = (r: RecordModel): Tva => {
 export function useTva() {
   const [tva, setTva] = useState<Tva>(() => {
     const cached = readCache().tva
-    return cached ?? { jellyfin: null, lastBackup: '', variances: [], varChecked: '', hasCatalog: false }
+    return { jellyfin: null, lastBackup: '', variances: [], varChecked: '', hasCatalog: false, ...cached, tempad: { keepDays: 30, limitGB: 20, lastPrune: null, ...cached?.tempad } }
   })
   useEffect(() => {
     const tvaRecords = pb.collection('tva')
@@ -137,7 +140,7 @@ export function useTva() {
 }
 
 // Runs a TVA task on the server; resolves with an error message, or null when it worked.
-export const runTask = (task: 'jellyfin' | 'backup' | 'variance' | 'variance/resolve' | 'push/subscribe' | 'push/unsubscribe' | 'push/test', body?: object) =>
+export const runTask = (task: 'jellyfin' | 'backup' | 'variance' | 'variance/resolve' | 'push/subscribe' | 'push/unsubscribe' | 'push/test' | 'tempad/prune' | 'tempad/settings', body?: object) =>
   pb.send(`/api/st/${task}`, { method: 'POST', body })
     .then(() => null)
     .catch((err: { response?: { error?: string } }) => err.response?.error ?? "Couldn't reach the server.")

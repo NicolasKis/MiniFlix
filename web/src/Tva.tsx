@@ -1,8 +1,9 @@
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { ANIM_GROUPS, type AnimKey, type AnimPrefs } from './anim'
 import { QUALITY_STYLE, fmtDate, poster, titles, today, type Title } from './data'
 import { NOTIF_KINDS, pushSupported, usePush } from './push'
 import { runTask, type Tva as TvaData } from './store'
+import { daysOld, fmtBytes, kindOf, useTempad } from './TemPad'
 
 const KIND = { movie: 'Film', series: 'Series', special: 'Special' } as const
 
@@ -46,6 +47,7 @@ export default function Tva({ tva, anim, entering, hidden, onShow, onReset }: Pr
   const [listOpen, setListOpen] = useState(false)
   const [animOpen, setAnimOpen] = useState(false)
   const [hiddenOpen, setHiddenOpen] = useState(false)
+  const [padOpen, setPadOpen] = useState(false)
   const [confirm, setConfirm] = useState<'backup' | 'reset' | null>(null)
   const [wasReset, setWasReset] = useState(false)
   const [fresh, setFresh] = useState<string[]>([])
@@ -291,6 +293,13 @@ export default function Tva({ tva, anim, entering, hidden, onShow, onReset }: Pr
         )}
       </section>
 
+      <section aria-labelledby="st-tp" className="flex flex-col gap-4" style={stamp(door, 415)}>
+        <Heading id="st-tp" tile="bg-gold" icon={<path d="M7 5h10a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM9 9h6M9 12h6M9 15h3" stroke="#0E0F12" strokeWidth="1.8" strokeLinecap="round" fill="none" />}>
+          TemPad storage
+        </Heading>
+        <TempadStorage tva={tva} open={padOpen} onToggle={() => setPadOpen(!padOpen)} />
+      </section>
+
       <section aria-labelledby="st-an" className="flex flex-col gap-4" style={stamp(door, 430)}>
         <Heading id="st-an" tile="bg-red" icon={<path d="M12 5l1.6 4.4L18 11l-4.4 1.6L12 17l-1.6-4.4L6 11l4.4-1.6z" fill="#FFFFFF" />}>
           Animations
@@ -373,6 +382,96 @@ const animSummary = (prefs: Partial<AnimPrefs>) => {
   const keys = ANIM_GROUPS.flatMap(g => g.items.map(i => i[0]))
   const on = keys.filter(k => prefs[k] !== false).length
   return on === keys.length ? `All ${keys.length} animations on` : `${on} of ${keys.length} animations on`
+}
+
+// How full TemPad is, what takes the space, and the keep time and limit. Folded, it shows just "4.2 GB of 20 GB".
+function TempadStorage({ tva, open, onToggle }: { tva: TvaData; open: boolean; onToggle: () => void }) {
+  const { msgs } = useTempad()
+  const [disk, setDisk] = useState<number | null>(null)
+  const [note, setNote] = useState('')
+  const { keepDays, limitGB, lastPrune } = tva.tempad
+  useEffect(() => {
+    if (open) fetch('/api/st/tempad/disk').then(r => r.json()).then(d => setDisk(d.free)).catch(() => {})
+  }, [open])
+
+  const sum = (list: { size: number }[]) => list.reduce((s, m) => s + m.size, 0)
+  const used = sum(msgs)
+  const limit = limitGB * 1e9
+  const parts = [
+    ['Videos', '#E23636', msgs.filter(m => kindOf(m) === 'video')],
+    ['Photos', '#F5A524', msgs.filter(m => kindOf(m) === 'photo')],
+    ['Files', '#7A8BFF', msgs.filter(m => kindOf(m) === 'file')],
+    ['Text', '#A7A39C', msgs.filter(m => !m.file)],
+  ] as const
+  const sacred = msgs.filter(m => m.pinned)
+  // Messages whose time runs out within three days, soonest first.
+  const next = keepDays ? msgs.filter(m => !m.pinned && keepDays - daysOld(m) <= 3).sort((a, b) => a.created.localeCompare(b.created)) : []
+  const nextIn = next.length ? Math.max(0, keepDays - daysOld(next[0])) : 0
+  const plural = (n: number) => `${n} message${n === 1 ? '' : 's'}`
+  const set = (body: object) => runTask('tempad/settings', body).then(e => setNote(e ?? ''))
+  const pruneNow = () => runTask('tempad/prune').then(e => setNote(e ?? 'Pruned everything that was due.'))
+
+  return (
+    <div className="flex flex-col rounded-xl bg-surface px-5 py-1">
+      <button type="button" onClick={onToggle} aria-expanded={open} className="flex min-h-14 items-center justify-between gap-3 border-0 bg-transparent p-0 text-left text-[17px] font-bold text-ink">
+        <span className="tabular-nums">{fmtBytes(used)} of {limitGB} GB</span>
+        <Chev open={open} />
+      </button>
+      {open && (
+        <div className="flex flex-col gap-5 pb-5">
+          <div className="flex flex-col gap-2.5">
+            <div className="flex items-baseline justify-between gap-3 tabular-nums">
+              <strong className="font-display text-[44px] font-extrabold leading-[0.9]">{fmtBytes(used)}</strong>
+              <span className="text-[15px] text-muted">of {limitGB} GB · {Math.round((used / limit) * 100)}% full</span>
+            </div>
+            <div className="flex h-3.5 overflow-hidden rounded-lg bg-track">
+              {parts.map(([label, color, list]) => <span key={label} style={{ width: `${(sum(list) / limit) * 100}%`, background: color }} />)}
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[15px] tabular-nums">
+              {parts.map(([label, color, list]) => (
+                <div key={label} className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-2"><i className="inline-block size-2.5 rounded-[3px]" style={{ background: color }} />{label}</span>
+                  <span className="text-muted">{fmtBytes(sum(list))}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col">
+            <Row title="Sacred" hint={`${plural(sacred.length)} · never pruned`} value={fmtBytes(sum(sacred))} />
+            <Row title="Pruned next" hint={next.length ? `${plural(next.length)} ${nextIn === 0 ? 'tonight' : `in ${nextIn} day${nextIn === 1 ? '' : 's'}`}` : 'Nothing in the next 3 days'} value={next.length ? fmtBytes(sum(next)) : ''} />
+            <Row title="Last pruning" hint={lastPrune ? `${fmtDate(lastPrune.at.slice(0, 10))} · pruned ${plural(lastPrune.count)}` : 'Not yet. It runs every night at 3:00'} value={lastPrune ? `${fmtBytes(lastPrune.bytes)} freed` : ''} />
+            <Row title="Server disk" hint="Free space left for TemPad" value={disk === null ? '…' : `${fmtBytes(disk)} free`} />
+          </div>
+          <Seg label="Prune messages that aren't sacred after" options={[[7, '7 days'], [30, '30 days'], [90, '90 days'], [0, 'Forever']]} value={keepDays} onPick={v => set({ keepDays: v })} />
+          <Seg label="Storage limit" options={[[5, '5 GB'], [10, '10 GB'], [20, '20 GB'], [50, '50 GB']]} value={limitGB} onPick={v => set({ limitGB: v })} />
+          <button type="button" onClick={pruneNow} className="h-[52px] self-start rounded-full border-0 bg-btn px-6 text-[17px] font-bold text-white">Prune now</button>
+          {note && <span className="text-sm text-muted">{note}</span>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Row({ title, hint, value }: { title: string; hint: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-t border-track py-2.5 first:border-t-0">
+      <div className="min-w-0"><strong className="block font-semibold">{title}</strong><small className="text-[13px] text-muted">{hint}</small></div>
+      <span className="shrink-0 text-[15px] text-muted">{value}</span>
+    </div>
+  )
+}
+
+function Seg({ label, options, value, onPick }: { label: string; options: [number, string][]; value: number; onPick: (v: number) => void }) {
+  return (
+    <div className="flex flex-col gap-2.5">
+      <span className="font-bold">{label}</span>
+      <div className="grid grid-cols-4 gap-1 rounded-full bg-track p-1">
+        {options.map(([v, text]) => (
+          <button key={v} type="button" aria-pressed={value === v} onClick={() => onPick(v)} className={`h-10 rounded-full border-0 text-[15px] font-bold ${value === v ? 'bg-ink text-bg' : 'bg-transparent text-muted'}`}>{text}</button>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 function Heading({ id, tile, icon, children }: { id: string; tile: string; icon: ReactNode; children: ReactNode }) {
