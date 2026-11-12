@@ -1,12 +1,15 @@
+# Secrets and dependencies, in every app
 .env
-server/.env
 node_modules
-web/dist
-server/pb_data
-server/bin
+
+# Sacred Timeline build output and local data
+SacredTimeline/web/dist
+SacredTimeline/server/pb_data
+SacredTimeline/server/bin
+
+# Tool folders
 .taste-skill
 .playwright-cli
 
-# Personal notes, kept local
-IDEAS.md
-SETUP-GUIDE.md
+# Private notes and files, never committed
+Private/

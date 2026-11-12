@@ -12,8 +12,10 @@ Run Sacred Timeline on your own computer to try it or work on it. No server, Jel
 
 ```bash
 git clone https://github.com/NicolasKis/MiniFlix.git
-cd MiniFlix
+cd MiniFlix/SacredTimeline
 ```
+
+Every command below runs inside `SacredTimeline/`.
 
 ## 2. Add PocketBase
 

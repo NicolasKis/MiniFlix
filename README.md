@@ -10,7 +10,7 @@ A school project that started as a hobby project. By Nicolas Kiš.
 |---|---|
 | **Jellyfin** | My own Netflix: streams my films and shows to the PC and phone |
 | **Tailscale** | A private network just for my devices, so it works from anywhere with no ports open on the router |
-| **Sacred Timeline** | My own app for tracking every Marvel film and show in story order (the code in this repo) |
+| **Sacred Timeline** | My own app for tracking every Marvel film and show in story order (in `SacredTimeline/`) |
 
 ## Hardware
 
@@ -40,6 +40,8 @@ A web app that installs on the iPhone like a normal app.
 
 ### Project structure
 
+Each app has its own folder; Sacred Timeline lives in `SacredTimeline/`:
+
 ```
 web/                React app (src/, public/)
 server/
@@ -54,6 +56,8 @@ docker-compose.yml  runs it on the server
 ### Run it locally
 
 Step-by-step guides: [SETUP-LOCAL.md](SETUP-LOCAL.md) for your own computer, [SETUP-SERVER.md](SETUP-SERVER.md) for a full home server (Ubuntu, Docker, Jellyfin, Tailscale). Quick version:
+
+Run these from the `SacredTimeline/` folder.
 
 1. Download [PocketBase](https://pocketbase.io/docs/) into `server/bin/`.
 2. Build the web app:
@@ -72,6 +76,7 @@ For live reloading while coding, keep PocketBase running and run `npm run dev` i
 ### Run it on a server
 
 ```bash
+cd SacredTimeline
 docker compose up -d --build
 ```
 

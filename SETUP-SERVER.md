@@ -77,8 +77,8 @@ Your devices can now reach the server from anywhere through its Tailscale name, 
 
 ```bash
 cd ~
-git clone https://github.com/NicolasKis/MiniFlix.git sacred-timeline
-cd sacred-timeline
+git clone https://github.com/NicolasKis/MiniFlix.git
+cd MiniFlix/SacredTimeline
 ```
 
 Create `server/.env` for the optional features (all are optional, leave out what you don't use):
@@ -120,7 +120,7 @@ Open `https://<server's Tailscale name>` on your phone. On iPhone: Safari → Sh
 ## Updating
 
 ```bash
-cd ~/sacred-timeline
+cd ~/MiniFlix/SacredTimeline
 git pull
 docker compose up -d --build
 ```
