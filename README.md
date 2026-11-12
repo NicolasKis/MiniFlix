@@ -83,3 +83,9 @@ The container only listens on `127.0.0.1:8090`; put it behind Tailscale (or anot
 | `JELLYFIN_URL`, `JELLYFIN_KEY` | The Jellyfin library check |
 | `GITHUB_TOKEN`, `BACKUP_REPO` | "Back up now" to a private GitHub repo |
 | `VAPID_PUBLIC`, `VAPID_PRIVATE` | Push notifications |
+
+## License
+
+Free to use at home, for learning and for school under the [PolyForm Noncommercial License 1.0.0](LICENSE). Selling it or using it in a business or paid product is not allowed. Jellyfin, Tailscale, PocketBase and the other tools keep their own licenses.
+
+This product uses the TMDB API but is not endorsed or certified by TMDB.
