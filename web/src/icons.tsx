@@ -67,3 +67,12 @@ export function Service({ name }: { name: string }) {
       return <Tile label="Rent or buy only" fill="#3A3D45">{letters(12, '€', '#F5A524', 15)}</Tile>
   }
 }
+
+export function CreditsIcon({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M7 10h10M7 14h6" />
+    </svg>
+  )
+}

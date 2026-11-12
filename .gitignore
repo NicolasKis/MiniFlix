@@ -1,7 +1,12 @@
 .env
+server/.env
 node_modules
 web/dist
 server/pb_data
 server/bin
 .taste-skill
 .playwright-cli
+
+# Personal notes, kept local
+IDEAS.md
+SETUP-GUIDE.md

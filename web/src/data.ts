@@ -13,16 +13,25 @@ export type Title = {
   seasons?: { season: number; episodes: Episode[] }[]
   note?: string
   poster?: string | null
+  overview?: string
+  tmdb?: string // "movie/1726" or "tv/84958"
+  credits?: { mid: boolean; end: boolean } // scenes during or after the credits, from TMDB keywords
 }
 export type Progress = {
   watched: Record<string, string>
   included: Record<string, boolean>
   minimised: Record<string, boolean>
   started: string | null
+  // Rewatches outside the marathon; they never change the percentage.
+  log: { id: string; date: string }[]
+  // Titles taken off the timeline: they show and count nowhere, but their ticks are kept.
+  hidden: Record<string, boolean>
 }
 export type Ep = { key: string; season: number; number: number; min: number; airs: string | null; aired: boolean }
 
-export const titles = raw.titles as Title[]
+// The built-in locked list, replaced by the server's copy (with approved variances) once it loads.
+export let titles = raw.titles as Title[]
+export const setTitles = (list: Title[]) => { titles = list }
 
 // Eras start at these titles; order comes from the locked list.
 export const ERAS: { start: string; name: string; years: string }[] = [
@@ -31,6 +40,18 @@ export const ERAS: { start: string; name: string; years: string }[] = [
   { start: 'loki-1', name: 'The Multiverse Saga', years: '2023 onward' },
   { start: 'doomsday', name: 'Doomsday and beyond', years: 'Counted once they are out' },
 ]
+
+// Which saga each title belongs to, by position in the list (titles added later join the last saga).
+export const sagaMap = () => {
+  const map = new Map<string, number>()
+  let i = -1
+  for (const t of titles) {
+    const at = ERAS.findIndex(e => e.start === t.id)
+    if (at >= 0) i = at
+    map.set(t.id, i)
+  }
+  return map
+}
 
 export const today = () => new Date().toLocaleDateString('sv-SE') // YYYY-MM-DD in local time
 
@@ -59,10 +80,40 @@ export const isDone = (t: Title, p: Progress) => {
   return aired.length > 0 && aired.every(e => p.watched[e.key])
 }
 
+// When the marathon tick happened: a film's own date, or a finished series' last episode.
+export const watchedOn = (t: Title, p: Progress): string | null => {
+  if (t.kind !== 'series') return p.watched[t.id] ?? null
+  if (!isDone(t, p)) return null
+  return episodes(t).filter(e => e.aired).map(e => p.watched[e.key]).sort().pop() ?? null
+}
+
+// The marathon tick counts as one watch, every logged rewatch as another.
+export const watchCount = (t: Title, p: Progress) =>
+  (released(t) && isDone(t, p) ? 1 : 0) + p.log.filter(e => e.id === t.id).length
+
+export const countLabel = (n: number) => (n === 0 ? 'Not watched yet' : n === 1 ? 'Watched once' : `Watched ${n}×`)
+
+// The timeline without the titles you hid.
+export const shown = (p: Progress) => titles.filter(t => !p.hidden[t.id])
+
 export const isExtra = (t: Title) => t.category !== 'main'
 export const counts = (t: Title, p: Progress) => released(t) && (!isExtra(t) || !!p.included[t.id])
 
-export const poster = (t: Title, size: 'w154' | 'w342') => (t.poster ? `https://image.tmdb.org/t/p/${size}${t.poster}` : '')
+// Everything that counts toward 100%: main titles plus extras you added, released only.
+export const totals = (p: Progress) => {
+  const counted = shown(p).filter(t => counts(t, p))
+  const total = counted.reduce((a, t) => a + totalMins(t), 0)
+  const watched = counted.reduce((a, t) => a + watchedMins(t, p), 0)
+  return { counted, total, watched, pct: total ? Math.floor((watched / total) * 1000) / 10 : 0 }
+}
+
+// "Mid + end credits" on the timeline, a full sentence in the details card.
+export const creditsText = (c: { mid: boolean; end: boolean }, long = false) =>
+  long
+    ? `Stay for the credits: ${[c.mid && 'a mid-credits scene', c.end && 'an end-credits scene'].filter(Boolean).join(' and ')}.`
+    : c.mid && c.end ? 'Mid + end credits' : c.mid ? 'Mid-credits scene' : 'End-credits scene'
+
+export const poster =(t: Title, size: 'w154' | 'w342') => (t.poster ? `https://image.tmdb.org/t/p/${size}${t.poster}` : '')
 
 export const duration = (m: number) => {
   const h = Math.floor(m / 60)
@@ -90,3 +141,13 @@ export const span = (from: string, to: string) => {
 
 // The year shown in the left column, taken from "1943–1945", "Christmas 2024", "Outside time"...
 export const yearOf = (t: Title) => t.setIn.match(/\d{4}/)?.[0] ?? (t.setIn === 'Outside time' ? 'TVA' : '')
+
+// Better copies stand out more: grey for 480p up to filled gold for 4K.
+export const QUALITY_STYLE: Record<string, string> = {
+  '480p': 'bg-[#2A2B30] text-[#8A8D96]',
+  '720p': 'bg-track text-[#D9D5CD]',
+  '1080p': 'bg-[#2A2340] text-[#C9B8FF]',
+  '1440p': 'bg-[#12303A] text-[#7FD6F2]',
+  '4K': 'bg-gold text-bg',
+}
+
