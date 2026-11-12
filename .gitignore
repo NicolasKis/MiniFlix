@@ -6,3 +6,7 @@ server/pb_data
 server/bin
 .taste-skill
 .playwright-cli
+
+# Personal notes, kept local
+IDEAS.md
+SETUP-GUIDE.md
