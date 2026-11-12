@@ -53,6 +53,8 @@ docker-compose.yml  runs it on the server
 
 ### Run it locally
 
+Step-by-step guides: [SETUP-LOCAL.md](SETUP-LOCAL.md) for your own computer, [SETUP-SERVER.md](SETUP-SERVER.md) for a full home server (Ubuntu, Docker, Jellyfin, Tailscale). Quick version:
+
 1. Download [PocketBase](https://pocketbase.io/docs/) into `server/bin/`.
 2. Build the web app:
    ```bash
